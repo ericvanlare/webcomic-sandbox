@@ -41,18 +41,30 @@ This document tracks the goals and progress for building a webcomic website usin
 
 ---
 
-## Phase 2: Production Deployment (IN PROGRESS)
+## Phase 2: Production Deployment ✅ COMPLETE
 
 ### Goals
 - [x] Build site for production
 - [x] Create DEPLOY.md with full instructions
 - [x] Update admin UI to support PUBLIC_WORKER_URL env var
-- [ ] Authenticate wrangler CLI
-- [ ] Deploy worker to Cloudflare Workers
-- [ ] Deploy site to Cloudflare Pages
-- [ ] Set production secrets
+- [x] Authenticate wrangler CLI
+- [x] Deploy worker to Cloudflare Workers
+- [x] Deploy site to Cloudflare Pages
+- [x] Set production secrets
 - [ ] Configure custom domain (optional)
 - [ ] Set up Cloudflare Access for `/admin` protection (Google login)
+
+### Deployment URLs
+- **Site:** https://webcomic-sandbox.pages.dev
+- **Worker:** (deployed separately)
+
+### Key Fix: Session Driver
+The `@astrojs/cloudflare` adapter v12 auto-enables Cloudflare KV sessions by default,
+which requires a KV namespace binding. To avoid this complexity, we set:
+```js
+session: { driver: 'memory' }
+```
+in `astro.config.mjs`. This bypasses the KV requirement.
 
 ### Deployment Guide
 See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
@@ -159,3 +171,5 @@ webcomic-sandbox/
 3. **Admin UI at `/admin`** has upload form that POSTs to worker API
 4. **Blueprint repo** is the template; **sandbox repo** is the working instance
 5. If you see `svgo` errors, ensure Astro is pinned to `^5.0.0` not latest
+6. **Session driver fix:** Must use `session: { driver: 'memory' }` in astro.config.mjs to avoid Cloudflare KV binding requirement
+7. **Deploy via wrangler:** Use `pnpm wrangler pages deploy ./dist --project-name <name>` from apps/site for reliable deployments
