@@ -132,8 +132,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
       resultDiv!.innerHTML = 'Uploading...';
       
       try {
-        // TODO: Replace with actual worker URL from env
-        const workerUrl = (window as any).WORKER_API_URL || 'http://localhost:8787';
+        const workerUrl = import.meta.env.PUBLIC_WORKER_URL || 'http://localhost:8787';
         const response = await fetch(`${workerUrl}/api/comics`, {
           method: 'POST',
           body: submitData,

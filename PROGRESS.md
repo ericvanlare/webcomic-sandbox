@@ -41,30 +41,35 @@ This document tracks the goals and progress for building a webcomic website usin
 
 ---
 
-## Phase 2: Production Deployment (TODO)
+## Phase 2: Production Deployment (IN PROGRESS)
 
 ### Goals
-- [ ] Deploy site to Cloudflare Pages
+- [x] Build site for production
+- [x] Create DEPLOY.md with full instructions
+- [x] Update admin UI to support PUBLIC_WORKER_URL env var
+- [ ] Authenticate wrangler CLI
 - [ ] Deploy worker to Cloudflare Workers
-- [ ] Set production secrets via `wrangler secret put`
+- [ ] Deploy site to Cloudflare Pages
+- [ ] Set production secrets
 - [ ] Configure custom domain (optional)
 - [ ] Set up Cloudflare Access for `/admin` protection (Google login)
 
-### Commands Reference
-```bash
-# Deploy worker
-cd apps/worker
-wrangler secret put SANITY_PROJECT_ID
-wrangler secret put SANITY_DATASET
-wrangler secret put SANITY_WRITE_TOKEN
-wrangler secret put ADMIN_ORIGIN  # Set to production admin URL
-pnpm deploy
+### Deployment Guide
+See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
 
-# Build site for deployment
-cd apps/site
-pnpm build
-# Upload dist/ to Cloudflare Pages via dashboard or wrangler pages
-```
+### Environment Variables Reference
+
+**Worker secrets (set via `wrangler secret put`):**
+- `SANITY_PROJECT_ID`
+- `SANITY_DATASET`
+- `SANITY_WRITE_TOKEN`
+- `ADMIN_ORIGIN` (your Pages URL)
+
+**Pages environment variables (set in Cloudflare dashboard):**
+- `SANITY_PROJECT_ID`
+- `SANITY_DATASET`
+- `SANITY_API_VERSION`
+- `PUBLIC_WORKER_URL` (your Worker URL)
 
 ---
 

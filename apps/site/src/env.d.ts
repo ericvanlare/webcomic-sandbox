@@ -5,6 +5,7 @@ interface ImportMetaEnv {
   readonly SANITY_PROJECT_ID: string;
   readonly SANITY_DATASET: string;
   readonly SANITY_API_VERSION: string;
+  readonly PUBLIC_WORKER_URL?: string;
 }
 
 interface ImportMeta {
