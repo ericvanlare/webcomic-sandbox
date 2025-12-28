@@ -45,8 +45,11 @@ importers:
         specifier: ^1.1.0
         version: 1.2.0
       astro:
-        specifier: ^5.1.0
+        specifier: ^5.0.0
         version: 5.16.6(@types/node@25.0.3)(rollup@4.54.0)(typescript@5.9.3)(yaml@2.8.2)
+      yargs-parser:
+        specifier: ^22.0.0
+        version: 22.0.0
     devDependencies:
       '@astrojs/check':
         specifier: ^0.9.0
@@ -3110,6 +3113,10 @@ packages:
   yargs-parser@21.1.1:
     resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
     engines: {node: '>=12'}
+
+  yargs-parser@22.0.0:
+    resolution: {integrity: sha512-rwu/ClNdSMpkSrUb+d6BRsSkLUq1fmfsY6TOpYzTwvwkg1/NRG85KBy3kq++A8LKQwX6lsu+aWad+2khvuXrqw==}
+    engines: {node: ^20.19.0 || ^22.12.0 || >=23}
 
   yargs@17.7.2:
     resolution: {integrity: sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==}
@@ -6398,6 +6405,8 @@ snapshots:
   yaml@2.8.2: {}
 
   yargs-parser@21.1.1: {}
+
+  yargs-parser@22.0.0: {}
 
   yargs@17.7.2:
     dependencies:
