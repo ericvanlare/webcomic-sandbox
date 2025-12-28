@@ -8,6 +8,10 @@ export default defineConfig({
       enabled: true,
     },
   }),
+  // Explicitly disable sessions to avoid KV binding requirement
+  session: {
+    driver: 'memory',
+  },
   vite: {
     build: {
       minify: false,
