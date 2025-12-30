@@ -7,7 +7,7 @@ let client: SanityClient | null = null;
 export function getSanityClient(): SanityClient {
   if (!client) {
     client = createClient({
-      projectId: import.meta.env.SANITY_PROJECT_ID,
+      projectId: import.meta.env.SANITY_PROJECT_ID || 'jbvskr1t',
       dataset: import.meta.env.SANITY_DATASET || 'production',
       apiVersion: import.meta.env.SANITY_API_VERSION || '2024-01-01',
       useCdn: true,
@@ -17,7 +17,7 @@ export function getSanityClient(): SanityClient {
 }
 
 const builder = imageUrlBuilder({
-  projectId: import.meta.env.SANITY_PROJECT_ID || '',
+  projectId: import.meta.env.SANITY_PROJECT_ID || 'jbvskr1t',
   dataset: import.meta.env.SANITY_DATASET || 'production',
 });
 
