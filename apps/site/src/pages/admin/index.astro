@@ -1,5 +1,8 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { PUBLIC_WORKER_URL } from 'astro:env/server';
+
+const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
 ---
 
 <BaseLayout title="Admin Panel">
@@ -32,6 +35,7 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
     </button>
   </div>
 
+  <!-- Upload New Comic Form -->
   <div
     id="upload-form"
     style="display: none; margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;"
@@ -65,58 +69,102 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
     <div id="form-result" style="margin-top: 1rem;"></div>
   </div>
 
+  <!-- Modify Comic UI -->
   <div
-    id="modify-placeholder"
-    style="display: none; margin-top: 2rem; padding: 1rem; background: #fff3cd; border-radius: 4px;"
+    id="modify-form"
+    style="display: none; margin-top: 2rem; padding: 1rem; background: #e8f4fc; border-radius: 4px;"
   >
-    <p>🚧 Modify Comic UI - Coming in Phase 2</p>
+    <h2>Modify Comic</h2>
+    
+    <div id="comic-selector" style="margin-bottom: 1rem;">
+      <label>
+        Select Comic:
+        <select id="comic-select" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+          <option value="">Loading comics...</option>
+        </select>
+      </label>
+    </div>
+
+    <form id="modify-comic-form" style="display: none; flex-direction: column; gap: 1rem;">
+      <input type="hidden" name="comicId" id="modify-comic-id" />
+      
+      <div style="background: #f0f0f0; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">
+        <img id="modify-preview" src="" alt="Current comic" style="max-width: 200px; max-height: 150px; display: none;" />
+      </div>
+      
+      <label>
+        Title:
+        <input type="text" name="title" id="modify-title" style="width: 100%; padding: 0.5rem;" />
+      </label>
+      <label>
+        Slug:
+        <input type="text" name="slug" id="modify-slug" style="width: 100%; padding: 0.5rem;" />
+      </label>
+      <label>
+        Replace Image (optional):
+        <input type="file" name="image" id="modify-image" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" />
+      </label>
+      <label>
+        Alt Text:
+        <input type="text" name="altText" id="modify-alt" style="width: 100%; padding: 0.5rem;" />
+      </label>
+      <label>
+        Transcript:
+        <textarea name="transcript" id="modify-transcript" rows="4" style="width: 100%; padding: 0.5rem;"></textarea>
+      </label>
+      <button type="submit" style="padding: 0.75rem; background: #4a9eff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Save Changes
+      </button>
+    </form>
+    <div id="modify-result" style="margin-top: 1rem;"></div>
   </div>
 
+  <!-- AI Placeholder -->
   <div
     id="ai-placeholder"
     style="display: none; margin-top: 2rem; padding: 1rem; background: #e7d4f5; border-radius: 4px;"
   >
-    <p>🤖 AI Site Modification - Coming in Phase 2</p>
+    <p>🤖 AI Site Modification - Coming in Phase 3</p>
   </div>
 
-  <script>
+  <script define:vars={{ workerUrl }}>
     const uploadBtn = document.getElementById('btn-upload');
     const modifyBtn = document.getElementById('btn-modify');
     const aiBtn = document.getElementById('btn-ai');
     const uploadForm = document.getElementById('upload-form');
-    const modifyPlaceholder = document.getElementById('modify-placeholder');
+    const modifyForm = document.getElementById('modify-form');
     const aiPlaceholder = document.getElementById('ai-placeholder');
 
     function hideAll() {
-      uploadForm!.style.display = 'none';
-      modifyPlaceholder!.style.display = 'none';
-      aiPlaceholder!.style.display = 'none';
+      uploadForm.style.display = 'none';
+      modifyForm.style.display = 'none';
+      aiPlaceholder.style.display = 'none';
     }
 
     uploadBtn?.addEventListener('click', () => {
       hideAll();
-      uploadForm!.style.display = 'block';
+      uploadForm.style.display = 'block';
     });
 
     modifyBtn?.addEventListener('click', () => {
       hideAll();
-      modifyPlaceholder!.style.display = 'block';
+      modifyForm.style.display = 'block';
+      loadComics();
     });
 
     aiBtn?.addEventListener('click', () => {
       hideAll();
-      aiPlaceholder!.style.display = 'block';
+      aiPlaceholder.style.display = 'block';
     });
 
-    // Form submission
-    const form = document.getElementById('comic-form') as HTMLFormElement;
+    // Upload form submission
+    const form = document.getElementById('comic-form');
     const resultDiv = document.getElementById('form-result');
 
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
       
-      // Build JSON metadata
       const metadata = {
         title: formData.get('title'),
         slug: formData.get('slug'),
@@ -124,28 +172,122 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
         transcript: formData.get('transcript'),
       };
       
-      // Create multipart form with json + image
       const submitData = new FormData();
       submitData.append('json', JSON.stringify(metadata));
-      submitData.append('image', formData.get('image') as File);
+      submitData.append('image', formData.get('image'));
       
-      resultDiv!.innerHTML = 'Uploading...';
+      resultDiv.innerHTML = 'Uploading...';
       
       try {
-        const workerUrl = import.meta.env.PUBLIC_WORKER_URL || 'http://localhost:8787';
         const response = await fetch(`${workerUrl}/api/comics`, {
           method: 'POST',
           body: submitData,
         });
         const result = await response.json();
         if (result.success) {
-          resultDiv!.innerHTML = `<span style="color: green;">✓ Comic created! ID: ${result.data._id}</span>`;
+          resultDiv.innerHTML = `<span style="color: green;">✓ Comic created! ID: ${result.data._id}</span>`;
           form.reset();
         } else {
-          resultDiv!.innerHTML = `<span style="color: red;">✗ Error: ${result.error}</span>`;
+          resultDiv.innerHTML = `<span style="color: red;">✗ Error: ${result.error}</span>`;
         }
       } catch (err) {
-        resultDiv!.innerHTML = `<span style="color: red;">✗ Network error: ${err}</span>`;
+        resultDiv.innerHTML = `<span style="color: red;">✗ Network error: ${err}</span>`;
+      }
+    });
+
+    // Modify comic functionality
+    let comicsCache = [];
+    
+    async function loadComics() {
+      const select = document.getElementById('comic-select');
+      try {
+        const response = await fetch('/api/comics');
+        const result = await response.json();
+        if (result.success) {
+          comicsCache = result.data;
+          select.innerHTML = '<option value="">Select a comic...</option>';
+          result.data.forEach(comic => {
+            const option = document.createElement('option');
+            option.value = comic._id;
+            option.textContent = `${comic.title} (${comic.slug.current})`;
+            select.appendChild(option);
+          });
+        } else {
+          select.innerHTML = '<option value="">Error loading comics</option>';
+        }
+      } catch (err) {
+        select.innerHTML = '<option value="">Failed to load comics</option>';
+      }
+    }
+
+    const comicSelect = document.getElementById('comic-select');
+    const modifyComicForm = document.getElementById('modify-comic-form');
+    
+    comicSelect?.addEventListener('change', (e) => {
+      const comicId = e.target.value;
+      if (!comicId) {
+        modifyComicForm.style.display = 'none';
+        return;
+      }
+      
+      const comic = comicsCache.find(c => c._id === comicId);
+      if (!comic) return;
+      
+      document.getElementById('modify-comic-id').value = comic._id;
+      document.getElementById('modify-title').value = comic.title || '';
+      document.getElementById('modify-slug').value = comic.slug?.current || '';
+      document.getElementById('modify-alt').value = comic.altText || '';
+      document.getElementById('modify-transcript').value = comic.transcript || '';
+      
+      const preview = document.getElementById('modify-preview');
+      if (comic.imageUrl) {
+        preview.src = comic.imageUrl;
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+      
+      modifyComicForm.style.display = 'flex';
+    });
+
+    const modifyResultDiv = document.getElementById('modify-result');
+    
+    modifyComicForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(modifyComicForm);
+      const comicId = formData.get('comicId');
+      
+      const metadata = {
+        title: formData.get('title'),
+        slug: formData.get('slug'),
+        altText: formData.get('altText'),
+        transcript: formData.get('transcript'),
+      };
+      
+      const submitData = new FormData();
+      submitData.append('json', JSON.stringify(metadata));
+      
+      const imageFile = formData.get('image');
+      if (imageFile && imageFile.size > 0) {
+        submitData.append('image', imageFile);
+      }
+      
+      modifyResultDiv.innerHTML = 'Saving changes...';
+      
+      try {
+        const response = await fetch(`${workerUrl}/api/comics/${comicId}`, {
+          method: 'PATCH',
+          body: submitData,
+        });
+        const result = await response.json();
+        if (result.success) {
+          modifyResultDiv.innerHTML = `<span style="color: green;">✓ Comic updated successfully!</span>`;
+          loadComics();
+        } else {
+          modifyResultDiv.innerHTML = `<span style="color: red;">✗ Error: ${result.error}</span>`;
+        }
+      } catch (err) {
+        modifyResultDiv.innerHTML = `<span style="color: red;">✗ Network error: ${err}</span>`;
       }
     });
   </script>
