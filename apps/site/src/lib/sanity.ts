@@ -69,3 +69,4 @@ export async function getArchive(
   const comics = await client.fetch<Comic[]>(query);
   return comics.map(addImageUrl);
 }
+
