@@ -85,25 +85,34 @@ See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
 
 ---
 
-## Phase 3: Enhanced Admin (TODO)
+## Phase 3: Enhanced Admin ✅ COMPLETE
 
 ### Goals
-- [ ] Functional "Upload New Comic" form in admin UI (currently posts to API)
-- [ ] "Modify Comic" UI - list existing comics, edit form
-- [ ] "Modify Site with AI" - agent-driven site modifications
+- [x] Functional "Upload New Comic" form in admin UI
+- [x] "Modify Comic" UI - list existing comics, edit form
+- [x] Hide/unhide comics functionality
+- [x] Delete comics with confirmation modal
+- [x] Cloudflare Web Analytics integration
+- [ ] "Modify Site with AI" - agent-driven site modifications (placeholder)
 - [ ] PR preview integration for proposed changes
 
 ---
 
-## Phase 4: Advanced Features (TODO)
+## Phase 4: Advanced Features (IN PROGRESS)
 
 ### Goals
-- [ ] Comic navigation (prev/next links)
+- [x] Comic navigation (prev/next links)
 - [ ] RSS feed
 - [ ] Social meta tags (Open Graph, Twitter cards)
 - [ ] Search functionality
 - [ ] Scheduled publishing
 - [ ] Multiple comic series support
+
+### Comic Navigation Implementation
+- Added `getAdjacentComics()` query to `sanity.ts` - fetches prev/next comics by publishedAt date
+- Updated homepage (`index.astro`) with prev/next nav (next always disabled since it's latest)
+- Updated comic page (`comic/[slug].astro`) with full prev/next navigation
+- Navigation respects hidden comics (they're filtered out)
 
 ---
 
