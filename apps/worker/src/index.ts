@@ -10,7 +10,11 @@ interface Env {
   SANITY_DATASET: string;
   SANITY_WRITE_TOKEN: string;
   ADMIN_ORIGIN: string;
+  GITHUB_TOKEN: string;
 }
+
+const GITHUB_OWNER = 'ericvanlare';
+const GITHUB_REPO = 'webcomic-sandbox';
 
 function corsHeaders(origin: string, adminOrigin: string): HeadersInit {
   const allowedOrigin = origin === adminOrigin ? adminOrigin : '';
@@ -364,6 +368,306 @@ async function handleDeleteComic(
   }
 }
 
+// AI Modification Endpoints
+
+interface AiModRequest {
+  description: string;
+}
+
+interface GitHubIssue {
+  number: number;
+  html_url: string;
+  state: string;
+}
+
+interface GitHubPullRequest {
+  number: number;
+  html_url: string;
+  state: string;
+  head: { ref: string };
+  mergeable: boolean | null;
+  merged: boolean;
+}
+
+interface GitHubDeployment {
+  id: number;
+  environment: string;
+  statuses_url: string;
+}
+
+interface GitHubDeploymentStatus {
+  state: string;
+  environment_url: string | null;
+}
+
+async function githubApi<T>(
+  env: Env,
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const response = await fetch(`https://api.github.com${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'webcomic-api',
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`GitHub API error: ${response.status} ${text}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+async function handleAiModRequest(
+  request: Request,
+  env: Env,
+  cors: HeadersInit
+): Promise<Response> {
+  try {
+    const body = await request.json() as AiModRequest;
+    
+    if (!body.description || body.description.trim().length === 0) {
+      return jsonResponse(
+        { success: false, error: 'Description is required' },
+        400,
+        cors
+      );
+    }
+
+    // Create GitHub issue assigned to Copilot
+    const issueBody = `## Site Modification Request
+
+${body.description}
+
+---
+*This issue was created from the admin panel. Copilot will work on this and create a PR.*
+`;
+
+    const issue = await githubApi<GitHubIssue>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `[AI] ${body.description.slice(0, 60)}${body.description.length > 60 ? '...' : ''}`,
+          body: issueBody,
+          assignees: ['copilot'],
+          labels: ['ai-modification'],
+        }),
+      }
+    );
+
+    return jsonResponse({
+      success: true,
+      data: {
+        issueNumber: issue.number,
+        issueUrl: issue.html_url,
+        status: 'pending',
+      },
+    }, 201, cors);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return jsonResponse(
+      { success: false, error: 'Failed to create AI modification request', details: message },
+      500,
+      cors
+    );
+  }
+}
+
+async function handleAiModStatus(
+  request: Request,
+  env: Env,
+  cors: HeadersInit
+): Promise<Response> {
+  const url = new URL(request.url);
+  const issueNumber = url.searchParams.get('issue');
+
+  if (!issueNumber) {
+    return jsonResponse(
+      { success: false, error: 'Issue number is required' },
+      400,
+      cors
+    );
+  }
+
+  try {
+    // Get the issue to check its state
+    const issue = await githubApi<GitHubIssue>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${issueNumber}`
+    );
+
+    // Search for PRs that reference this issue
+    const prs = await githubApi<GitHubPullRequest[]>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls?state=all&per_page=10`
+    );
+
+    // Find PR that mentions this issue (Copilot usually links them)
+    const linkedPr = prs.find(pr => 
+      pr.head.ref.includes(issueNumber) || 
+      pr.head.ref.includes(`issue-${issueNumber}`)
+    );
+
+    let previewUrl: string | null = null;
+    let prStatus: string = 'not_found';
+
+    if (linkedPr) {
+      prStatus = linkedPr.merged ? 'merged' : linkedPr.state;
+
+      // Get deployments for the PR branch to find preview URL
+      try {
+        const deployments = await githubApi<GitHubDeployment[]>(
+          env,
+          `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments?ref=${linkedPr.head.ref}&per_page=5`
+        );
+
+        for (const deployment of deployments) {
+          const statuses = await githubApi<GitHubDeploymentStatus[]>(
+            env,
+            `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments/${deployment.id}/statuses`
+          );
+          
+          const successStatus = statuses.find(s => s.state === 'success' && s.environment_url);
+          if (successStatus?.environment_url) {
+            previewUrl = successStatus.environment_url;
+            break;
+          }
+        }
+      } catch {
+        // Deployments might not exist yet
+      }
+    }
+
+    return jsonResponse({
+      success: true,
+      data: {
+        issueNumber: parseInt(issueNumber),
+        issueState: issue.state,
+        prNumber: linkedPr?.number ?? null,
+        prUrl: linkedPr?.html_url ?? null,
+        prState: prStatus,
+        previewUrl,
+        status: linkedPr 
+          ? (linkedPr.merged ? 'merged' : (previewUrl ? 'preview_ready' : 'pr_created'))
+          : 'pending',
+      },
+    }, 200, cors);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return jsonResponse(
+      { success: false, error: 'Failed to get status', details: message },
+      500,
+      cors
+    );
+  }
+}
+
+async function handleAiModApprove(
+  request: Request,
+  env: Env,
+  cors: HeadersInit
+): Promise<Response> {
+  try {
+    const body = await request.json() as { prNumber: number };
+
+    if (!body.prNumber) {
+      return jsonResponse(
+        { success: false, error: 'PR number is required' },
+        400,
+        cors
+      );
+    }
+
+    // Merge the PR
+    await githubApi<unknown>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls/${body.prNumber}/merge`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merge_method: 'squash',
+        }),
+      }
+    );
+
+    return jsonResponse({
+      success: true,
+      data: { prNumber: body.prNumber, merged: true },
+    }, 200, cors);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return jsonResponse(
+      { success: false, error: 'Failed to merge PR', details: message },
+      500,
+      cors
+    );
+  }
+}
+
+async function handleAiModReject(
+  request: Request,
+  env: Env,
+  cors: HeadersInit
+): Promise<Response> {
+  try {
+    const body = await request.json() as { prNumber: number; issueNumber?: number };
+
+    if (!body.prNumber) {
+      return jsonResponse(
+        { success: false, error: 'PR number is required' },
+        400,
+        cors
+      );
+    }
+
+    // Close the PR
+    await githubApi<unknown>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls/${body.prNumber}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: 'closed' }),
+      }
+    );
+
+    // Optionally close the issue too
+    if (body.issueNumber) {
+      await githubApi<unknown>(
+        env,
+        `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${body.issueNumber}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ state: 'closed' }),
+        }
+      );
+    }
+
+    return jsonResponse({
+      success: true,
+      data: { prNumber: body.prNumber, closed: true },
+    }, 200, cors);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return jsonResponse(
+      { success: false, error: 'Failed to reject changes', details: message },
+      500,
+      cors
+    );
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -390,6 +694,23 @@ export default {
     const deleteMatch = url.pathname.match(/^\/api\/comics\/([^/]+)$/);
     if (deleteMatch && request.method === 'DELETE') {
       return handleDeleteComic(env, deleteMatch[1], cors);
+    }
+
+    // AI Modification routes
+    if (url.pathname === '/api/ai-mod/request' && request.method === 'POST') {
+      return handleAiModRequest(request, env, cors);
+    }
+
+    if (url.pathname === '/api/ai-mod/status' && request.method === 'GET') {
+      return handleAiModStatus(request, env, cors);
+    }
+
+    if (url.pathname === '/api/ai-mod/approve' && request.method === 'POST') {
+      return handleAiModApprove(request, env, cors);
+    }
+
+    if (url.pathname === '/api/ai-mod/reject' && request.method === 'POST') {
+      return handleAiModReject(request, env, cors);
     }
 
     // Health check

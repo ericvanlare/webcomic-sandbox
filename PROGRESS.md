@@ -114,6 +114,17 @@ See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
 - Updated comic page (`comic/[slug].astro`) with full prev/next navigation
 - Navigation respects hidden comics (they're filtered out)
 
+### AI Site Modification (Prototype)
+- **How it works**: User describes a change → Creates GitHub issue assigned to Copilot → Copilot creates PR → Cloudflare builds preview → User approves/rejects
+- **Worker endpoints**: 
+  - `POST /api/ai-mod/request` - Creates issue assigned to Copilot
+  - `GET /api/ai-mod/status?issue=N` - Polls for PR + preview URL
+  - `POST /api/ai-mod/approve` - Merges the PR
+  - `POST /api/ai-mod/reject` - Closes the PR
+- **Admin UI**: Full form with status polling, preview iframe, approve/reject buttons
+- **copilot-instructions.md**: Added to help Copilot understand the codebase structure
+- **Note**: Requires GitHub Copilot Pro/Pro+ and `GITHUB_TOKEN` secret in Worker
+
 ---
 
 ## Tech Stack Reference
