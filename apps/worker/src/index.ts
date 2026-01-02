@@ -217,7 +217,12 @@ async function handleCreateComic(
     );
   }
 
-  const file = imageFile as unknown as { name: string; size: number; type: string; arrayBuffer(): Promise<ArrayBuffer> };
+  const file = imageFile as unknown as {
+    name: string;
+    size: number;
+    type: string;
+    arrayBuffer(): Promise<ArrayBuffer>;
+  };
 
   // Validate image
   const imageError = validateImageFile(
@@ -275,7 +280,12 @@ async function handlePatchComic(
   const contentType = request.headers.get('Content-Type') || '';
 
   let data: PatchComicBody;
-  type FileData = { name: string; size: number; type: string; arrayBuffer(): Promise<ArrayBuffer> };
+  type FileData = {
+    name: string;
+    size: number;
+    type: string;
+    arrayBuffer(): Promise<ArrayBuffer>;
+  };
   let imageFileData: FileData | null = null;
 
   if (contentType.includes('multipart/form-data')) {
@@ -323,7 +333,10 @@ async function handlePatchComic(
     }
   } else {
     return jsonResponse(
-      { success: false, error: 'Expected multipart/form-data or application/json' },
+      {
+        success: false,
+        error: 'Expected multipart/form-data or application/json',
+      },
       400,
       cors
     );
@@ -332,14 +345,24 @@ async function handlePatchComic(
   try {
     let newImageAssetId: string | undefined;
     if (imageFileData) {
-      const imageBlob = new Blob([await imageFileData.arrayBuffer()], { type: imageFileData.type });
-      const asset = await uploadImageToSanity(env, imageBlob, imageFileData.name);
+      const imageBlob = new Blob([await imageFileData.arrayBuffer()], {
+        type: imageFileData.type,
+      });
+      const asset = await uploadImageToSanity(
+        env,
+        imageBlob,
+        imageFileData.name
+      );
       newImageAssetId = asset._id;
     }
 
     await patchComicDocument(env, documentId, data, newImageAssetId);
 
-    return jsonResponse({ success: true, data: { _id: documentId } }, 200, cors);
+    return jsonResponse(
+      { success: true, data: { _id: documentId } },
+      200,
+      cors
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(
@@ -357,7 +380,11 @@ async function handleDeleteComic(
 ): Promise<Response> {
   try {
     await deleteComicDocument(env, documentId);
-    return jsonResponse({ success: true, data: { _id: documentId, deleted: true } }, 200, cors);
+    return jsonResponse(
+      { success: true, data: { _id: documentId, deleted: true } },
+      200,
+      cors
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(
@@ -409,8 +436,8 @@ async function githubApi<T>(
   const response = await fetch(`https://api.github.com${endpoint}`, {
     ...options,
     headers: {
-      'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
-      'Accept': 'application/vnd.github+json',
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'webcomic-api',
       ...options.headers,
@@ -438,7 +465,7 @@ async function githubGraphQL<T>(
   const response = await fetch('https://api.github.com/graphql', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
       'Content-Type': 'application/json',
       'User-Agent': 'webcomic-api',
     },
@@ -450,7 +477,7 @@ async function githubGraphQL<T>(
     throw new Error(`GitHub GraphQL error: ${response.status} ${text}`);
   }
 
-  const result = await response.json() as GraphQLResponse<T>;
+  const result = (await response.json()) as GraphQLResponse<T>;
   if (result.errors && result.errors.length > 0) {
     throw new Error(`GitHub GraphQL error: ${result.errors[0].message}`);
   }
@@ -464,8 +491,8 @@ async function handleAiModRequest(
   cors: HeadersInit
 ): Promise<Response> {
   try {
-    const body = await request.json() as AiModRequest;
-    
+    const body = (await request.json()) as AiModRequest;
+
     if (!body.description || body.description.trim().length === 0) {
       return jsonResponse(
         { success: false, error: 'Description is required' },
@@ -508,7 +535,7 @@ ${body.description}
           };
         };
       }
-      
+
       const actorsResult = await githubGraphQL<SuggestedActorsResponse>(
         env,
         `query($owner: String!, $name: String!) {
@@ -531,7 +558,8 @@ ${body.description}
       );
 
       const copilotBot = actorsResult.repository.suggestedActors.nodes.find(
-        (node) => node.login === 'copilot-swe-agent' && node.__typename === 'Bot'
+        (node) =>
+          node.login === 'copilot-swe-agent' && node.__typename === 'Bot'
       );
 
       if (copilotBot) {
@@ -539,7 +567,7 @@ ${body.description}
         interface IssueIdResponse {
           repository: { issue: { id: string } };
         }
-        
+
         const issueResult = await githubGraphQL<IssueIdResponse>(
           env,
           `query($owner: String!, $name: String!, $number: Int!) {
@@ -567,9 +595,9 @@ ${body.description}
               }
             }
           }`,
-          { 
-            issueId: issueResult.repository.issue.id, 
-            assigneeIds: [copilotBot.id] 
+          {
+            issueId: issueResult.repository.issue.id,
+            assigneeIds: [copilotBot.id],
           }
         );
         copilotAssigned = true;
@@ -579,19 +607,27 @@ ${body.description}
       // The issue is still created, user can manually assign Copilot
     }
 
-    return jsonResponse({
-      success: true,
-      data: {
-        issueNumber: issue.number,
-        issueUrl: issue.html_url,
-        status: 'pending',
-        copilotAssigned,
+    return jsonResponse(
+      {
+        success: true,
+        data: {
+          issueNumber: issue.number,
+          issueUrl: issue.html_url,
+          status: 'pending',
+          copilotAssigned,
+        },
       },
-    }, 201, cors);
+      201,
+      cors
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(
-      { success: false, error: 'Failed to create AI modification request', details: message },
+      {
+        success: false,
+        error: 'Failed to create AI modification request',
+        details: message,
+      },
       500,
       cors
     );
@@ -628,12 +664,18 @@ async function handleAiModStatus(
     );
 
     // Find PR that mentions this issue (check branch name and body for "Fixes #N")
-    const linkedPr = prs.find(pr => {
-      if (pr.head.ref.includes(issueNumber) || pr.head.ref.includes(`issue-${issueNumber}`)) {
+    const linkedPr = prs.find((pr) => {
+      if (
+        pr.head.ref.includes(issueNumber) ||
+        pr.head.ref.includes(`issue-${issueNumber}`)
+      ) {
         return true;
       }
       if (pr.body) {
-        const fixesPattern = new RegExp(`(fixes|closes|resolves)\\s+.*#${issueNumber}\\b`, 'i');
+        const fixesPattern = new RegExp(
+          `(fixes|closes|resolves)\\s+.*#${issueNumber}\\b`,
+          'i'
+        );
         if (fixesPattern.test(pr.body)) {
           return true;
         }
@@ -654,20 +696,28 @@ async function handleAiModStatus(
       }
     }
 
-    return jsonResponse({
-      success: true,
-      data: {
-        issueNumber: parseInt(issueNumber),
-        issueState: issue.state,
-        prNumber: linkedPr?.number ?? null,
-        prUrl: linkedPr?.html_url ?? null,
-        prState: prStatus,
-        previewUrl,
-        status: linkedPr 
-          ? (linkedPr.merged ? 'merged' : (previewUrl ? 'preview_ready' : 'pr_created'))
-          : 'pending',
+    return jsonResponse(
+      {
+        success: true,
+        data: {
+          issueNumber: parseInt(issueNumber),
+          issueState: issue.state,
+          prNumber: linkedPr?.number ?? null,
+          prUrl: linkedPr?.html_url ?? null,
+          prState: prStatus,
+          previewUrl,
+          status: linkedPr
+            ? linkedPr.merged
+              ? 'merged'
+              : previewUrl
+                ? 'preview_ready'
+                : 'pr_created'
+            : 'pending',
+        },
       },
-    }, 200, cors);
+      200,
+      cors
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(
@@ -686,10 +736,7 @@ interface GitHubIssueListItem {
   html_url: string;
 }
 
-async function handleAiModList(
-  env: Env,
-  cors: HeadersInit
-): Promise<Response> {
+async function handleAiModList(env: Env, cors: HeadersInit): Promise<Response> {
   try {
     // Get all issues with ai-modification label
     const issues = await githubApi<GitHubIssueListItem[]>(
@@ -708,14 +755,20 @@ async function handleAiModList(
       issues.map(async (issue) => {
         const issueNumStr = String(issue.number);
         // Check for PR linked via branch name or "Fixes #N" in body
-        const linkedPr = prs.find(pr => {
+        const linkedPr = prs.find((pr) => {
           // Check branch name
-          if (pr.head.ref.includes(issueNumStr) || pr.head.ref.includes(`issue-${issueNumStr}`)) {
+          if (
+            pr.head.ref.includes(issueNumStr) ||
+            pr.head.ref.includes(`issue-${issueNumStr}`)
+          ) {
             return true;
           }
           // Check body for "Fixes #N" or "Closes #N" patterns
           if (pr.body) {
-            const fixesPattern = new RegExp(`(fixes|closes|resolves)\\s+.*#${issue.number}\\b`, 'i');
+            const fixesPattern = new RegExp(
+              `(fixes|closes|resolves)\\s+.*#${issue.number}\\b`,
+              'i'
+            );
             if (fixesPattern.test(pr.body)) {
               return true;
             }
@@ -733,7 +786,9 @@ async function handleAiModList(
           // Format: https://<branch-slug>.<project>.pages.dev
           // Branch names get sanitized: slashes become dashes, lowercase
           if (!linkedPr.merged) {
-            const branchSlug = linkedPr.head.ref.replace(/\//g, '-').toLowerCase();
+            const branchSlug = linkedPr.head.ref
+              .replace(/\//g, '-')
+              .toLowerCase();
             previewUrl = `https://${branchSlug}.webcomic-sandbox.pages.dev`;
             status = 'preview_ready';
           }
@@ -750,17 +805,25 @@ async function handleAiModList(
           createdAt: issue.created_at,
           prNumber: linkedPr?.number ?? null,
           prUrl: linkedPr?.html_url ?? null,
-          prState: linkedPr ? (linkedPr.merged ? 'merged' : linkedPr.state) : null,
+          prState: linkedPr
+            ? linkedPr.merged
+              ? 'merged'
+              : linkedPr.state
+            : null,
           previewUrl,
           status,
         };
       })
     );
 
-    return jsonResponse({
-      success: true,
-      data: requests,
-    }, 200, cors);
+    return jsonResponse(
+      {
+        success: true,
+        data: requests,
+      },
+      200,
+      cors
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(
@@ -777,7 +840,7 @@ async function handleAiModApprove(
   cors: HeadersInit
 ): Promise<Response> {
   try {
-    const body = await request.json() as { prNumber: number };
+    const body = (await request.json()) as { prNumber: number };
 
     if (!body.prNumber) {
       return jsonResponse(
@@ -800,10 +863,14 @@ async function handleAiModApprove(
       }
     );
 
-    return jsonResponse({
-      success: true,
-      data: { prNumber: body.prNumber, merged: true },
-    }, 200, cors);
+    return jsonResponse(
+      {
+        success: true,
+        data: { prNumber: body.prNumber, merged: true },
+      },
+      200,
+      cors
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(
@@ -820,7 +887,10 @@ async function handleAiModReject(
   cors: HeadersInit
 ): Promise<Response> {
   try {
-    const body = await request.json() as { prNumber: number; issueNumber?: number };
+    const body = (await request.json()) as {
+      prNumber: number;
+      issueNumber?: number;
+    };
 
     if (!body.prNumber) {
       return jsonResponse(
@@ -854,10 +924,14 @@ async function handleAiModReject(
       );
     }
 
-    return jsonResponse({
-      success: true,
-      data: { prNumber: body.prNumber, closed: true },
-    }, 200, cors);
+    return jsonResponse(
+      {
+        success: true,
+        data: { prNumber: body.prNumber, closed: true },
+      },
+      200,
+      cors
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(

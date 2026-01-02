@@ -4,14 +4,14 @@ This directory contains the Sanity schema definition for comic episodes.
 
 ## Schema: comicEpisode
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| title | string | Yes | Comic episode title |
-| slug | slug | Yes | URL-friendly identifier |
-| publishedAt | datetime | Yes | Publication date |
-| image | image | Yes | Comic image asset |
-| altText | string | No | Accessibility description |
-| transcript | text | No | Comic transcript for accessibility |
+| Field       | Type     | Required | Description                        |
+| ----------- | -------- | -------- | ---------------------------------- |
+| title       | string   | Yes      | Comic episode title                |
+| slug        | slug     | Yes      | URL-friendly identifier            |
+| publishedAt | datetime | Yes      | Publication date                   |
+| image       | image    | Yes      | Comic image asset                  |
+| altText     | string   | No       | Accessibility description          |
+| transcript  | text     | No       | Comic transcript for accessibility |
 
 ## Setup Instructions
 

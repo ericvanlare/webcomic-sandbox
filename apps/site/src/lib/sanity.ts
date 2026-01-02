@@ -68,9 +68,7 @@ export async function getComicBySlug(
   return comic ? addImageUrl(comic) : null;
 }
 
-export async function getArchive(
-  limit = 50
-): Promise<ComicWithImageUrl[]> {
+export async function getArchive(limit = 50): Promise<ComicWithImageUrl[]> {
   const client = getSanityClient();
   const query = `*[_type == "comicEpisode" && hidden != true] | order(publishedAt desc)[0..${limit - 1}] {${comicFields}}`;
   const comics = await client.fetch<Comic[]>(query);
@@ -101,21 +99,24 @@ export async function getAdjacentComics(
   publishedAt: string
 ): Promise<{ prev: ComicWithImageUrl | null; next: ComicWithImageUrl | null }> {
   const client = getSanityClient();
-  
+
   // Previous comic: older than current (earlier publishedAt), get the most recent one
   const prevQuery = `*[_type == "comicEpisode" && hidden != true && publishedAt < $publishedAt] | order(publishedAt desc)[0] { _id, title, slug }`;
-  
-  // Next comic: newer than current (later publishedAt), get the oldest one  
+
+  // Next comic: newer than current (later publishedAt), get the oldest one
   const nextQuery = `*[_type == "comicEpisode" && hidden != true && publishedAt > $publishedAt] | order(publishedAt asc)[0] { _id, title, slug }`;
-  
+
   const [prev, next] = await Promise.all([
-    client.fetch<Pick<Comic, '_id' | 'title' | 'slug'> | null>(prevQuery, { publishedAt }),
-    client.fetch<Pick<Comic, '_id' | 'title' | 'slug'> | null>(nextQuery, { publishedAt }),
+    client.fetch<Pick<Comic, '_id' | 'title' | 'slug'> | null>(prevQuery, {
+      publishedAt,
+    }),
+    client.fetch<Pick<Comic, '_id' | 'title' | 'slug'> | null>(nextQuery, {
+      publishedAt,
+    }),
   ]);
-  
+
   return {
-    prev: prev ? { ...prev, imageUrl: '' } as ComicWithImageUrl : null,
-    next: next ? { ...next, imageUrl: '' } as ComicWithImageUrl : null,
+    prev: prev ? ({ ...prev, imageUrl: '' } as ComicWithImageUrl) : null,
+    next: next ? ({ ...next, imageUrl: '' } as ComicWithImageUrl) : null,
   };
 }
-
