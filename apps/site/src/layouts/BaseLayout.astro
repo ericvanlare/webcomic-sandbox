@@ -14,6 +14,28 @@ const { title } = Astro.props;
     <title>{title}</title>
     <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "09b9c80391304fa2b9a307bae1aca765"}'></script>
     <style is:global>
+      :root {
+        --bg-primary: #fafafa;
+        --bg-secondary: #f5f5f5;
+        --text-primary: #333;
+        --text-secondary: #666;
+        --border-color: #ddd;
+        --border-light: #eee;
+        --link-color: #0066cc;
+        --nav-disabled: #ccc;
+      }
+      
+      [data-theme="dark"] {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2a2a2a;
+        --text-primary: #e0e0e0;
+        --text-secondary: #a0a0a0;
+        --border-color: #404040;
+        --border-light: #333;
+        --link-color: #66a3ff;
+        --nav-disabled: #555;
+      }
+      
       * {
         box-sizing: border-box;
         margin: 0;
@@ -25,18 +47,20 @@ const { title } = Astro.props;
         max-width: 1200px;
         margin: 0 auto;
         padding: 1rem;
-        background: #fafafa;
-        color: #333;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
       a {
-        color: #0066cc;
+        color: var(--link-color);
       }
       nav {
         display: flex;
         gap: 1rem;
         padding: 1rem 0;
-        border-bottom: 1px solid #ddd;
+        border-bottom: 1px solid var(--border-color);
         margin-bottom: 2rem;
+        align-items: center;
       }
       nav a {
         text-decoration: none;
@@ -51,11 +75,11 @@ const { title } = Astro.props;
       .comic-image {
         max-width: 100%;
         height: auto;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
       }
       .comic-meta {
-        color: #666;
+        color: var(--text-secondary);
         font-size: 0.9rem;
         margin: 0.5rem 0;
       }
@@ -64,7 +88,7 @@ const { title } = Astro.props;
       }
       .archive-list li {
         padding: 0.75rem 0;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--border-light);
       }
       .archive-list a {
         text-decoration: none;
@@ -72,12 +96,60 @@ const { title } = Astro.props;
       .archive-list a:hover {
         text-decoration: underline;
       }
+      .theme-toggle {
+        margin-left: auto;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: background-color 0.2s ease;
+      }
+      .theme-toggle:hover {
+        background: var(--border-color);
+      }
     </style>
+    <script>
+      // Initialize theme on page load
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      // Theme toggle handler
+      function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+      }
+      
+      function updateThemeIcon(theme) {
+        const button = document.querySelector('.theme-toggle');
+        if (button) {
+          button.textContent = theme === 'light' ? '🌙' : '☀️';
+          button.setAttribute('aria-label', theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode');
+        }
+      }
+      
+      // Set initial icon after page load
+      document.addEventListener('DOMContentLoaded', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        updateThemeIcon(currentTheme);
+        
+        const button = document.querySelector('.theme-toggle');
+        if (button) {
+          button.addEventListener('click', toggleTheme);
+        }
+      });
+    </script>
   </head>
   <body>
     <nav>
       <a href="/">Latest</a>
       <a href="/archive">Archive</a>
+      <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
     </nav>
     <main>
       <slot />
