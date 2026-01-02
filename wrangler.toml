@@ -1,0 +1,6 @@
+# Cloudflare Pages configuration for Git-connected deploys
+# This tells Pages where to find the build output in this monorepo
+
+name = "webcomic-sandbox"
+compatibility_date = "2024-12-01"
+pages_build_output_dir = "apps/site/dist"
