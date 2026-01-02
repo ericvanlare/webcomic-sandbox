@@ -15,7 +15,7 @@ const comics = await getArchive();
             <a href={`/comic/${comic.slug.current}`}>
               <strong>{comic.title}</strong>
             </a>
-            <span class="comic-meta" style="margin-left: 1rem;">
+            <span class="comic-meta">
               {new Date(comic.publishedAt).toLocaleDateString()}
             </span>
           </li>
@@ -26,3 +26,10 @@ const comics = await getArchive();
     )
   }
 </BaseLayout>
+
+<style>
+  .comic-meta {
+    margin-left: 1rem;
+    display: inline-block;
+  }
+</style>

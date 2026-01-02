@@ -99,16 +99,19 @@ npx wrangler secret put ADMIN_ORIGIN
 Edit `apps/site/src/pages/admin/index.astro` to point to your production worker:
 
 Find this line:
+
 ```javascript
 const workerUrl = (window as any).WORKER_API_URL || 'http://localhost:8787';
 ```
 
 Replace with:
+
 ```javascript
 const workerUrl = import.meta.env.PUBLIC_WORKER_URL || 'http://localhost:8787';
 ```
 
 Then add `PUBLIC_WORKER_URL` to your Pages environment variables:
+
 - `PUBLIC_WORKER_URL` = `https://webcomic-api.<your-subdomain>.workers.dev`
 
 ---
@@ -126,9 +129,9 @@ Then add `PUBLIC_WORKER_URL` to your Pages environment variables:
 
 After deployment, update these:
 
-| Service | URL |
-|---------|-----|
-| Site | `https://webcomic-site.pages.dev` |
+| Service    | URL                                            |
+| ---------- | ---------------------------------------------- |
+| Site       | `https://webcomic-site.pages.dev`              |
 | Worker API | `https://webcomic-api.<subdomain>.workers.dev` |
 
 ---
@@ -136,12 +139,16 @@ After deployment, update these:
 ## Troubleshooting
 
 ### "Invalid binding `SESSION`" error
+
 The Astro Cloudflare adapter wants a KV namespace for sessions. Either:
+
 1. Create a KV namespace in Cloudflare dashboard and add the binding
 2. Or disable sessions by removing the session config (not recommended)
 
 ### CORS errors on admin
+
 Make sure `ADMIN_ORIGIN` secret matches exactly your Pages URL (including `https://`).
 
 ### Comics not loading
+
 Check that `SANITY_PROJECT_ID` and `SANITY_DATASET` are set correctly in Pages environment variables.

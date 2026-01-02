@@ -5,12 +5,14 @@ This document tracks the goals and progress for building a webcomic website usin
 ## Project Overview
 
 **Goal:** Build a complete webcomic website with:
+
 - Public site for readers (Cloudflare Pages)
 - Admin panel for creators (protected by Cloudflare Access)
 - API for comic management (Cloudflare Workers)
 - Sanity CMS for content storage
 
 **Repos:**
+
 - Blueprint (template): https://github.com/ericvanlare/webcomic-blueprint
 - Sandbox (this repo): https://github.com/ericvanlare/webcomic-sandbox
 
@@ -19,6 +21,7 @@ This document tracks the goals and progress for building a webcomic website usin
 ## Phase 1: Foundation ✅ COMPLETE
 
 ### Goals
+
 - [x] Monorepo structure with pnpm workspaces
 - [x] Astro site with routes: `/`, `/comic/[slug]`, `/archive`, `/admin`
 - [x] Cloudflare Worker API with `POST /api/comics` and `PATCH /api/comics/:id`
@@ -28,12 +31,14 @@ This document tracks the goals and progress for building a webcomic website usin
 - [x] Image upload validation (40MB max, png/jpg/webp/gif/avif)
 
 ### Smoke Test Results
+
 - [x] Created test comic via API ✅
 - [x] Comic appears on homepage ✅
 - [x] Comic appears in archive ✅
 - [x] Direct slug link works ✅
 
 ### Environment Setup (Manual Steps Completed)
+
 1. Created Sanity project at sanity.io/manage
 2. Created API token with Editor permissions
 3. Configured `apps/site/.env` with project ID
@@ -44,6 +49,7 @@ This document tracks the goals and progress for building a webcomic website usin
 ## Phase 2: Production Deployment ✅ COMPLETE
 
 ### Goals
+
 - [x] Build site for production
 - [x] Create DEPLOY.md with full instructions
 - [x] Update admin UI to support PUBLIC_WORKER_URL env var
@@ -55,29 +61,38 @@ This document tracks the goals and progress for building a webcomic website usin
 - [ ] Set up Cloudflare Access for `/admin` protection (Google login)
 
 ### Deployment URLs
+
 - **Site:** https://webcomic-sandbox.pages.dev
 - **Worker:** (deployed separately)
 
 ### Key Fix: Session Driver
+
 The `@astrojs/cloudflare` adapter v12 auto-enables Cloudflare KV sessions by default,
 which requires a KV namespace binding. To avoid this complexity, we set:
+
 ```js
-session: { driver: 'memory' }
+session: {
+  driver: 'memory';
+}
 ```
+
 in `astro.config.mjs`. This bypasses the KV requirement.
 
 ### Deployment Guide
+
 See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
 
 ### Environment Variables Reference
 
 **Worker secrets (set via `wrangler secret put`):**
+
 - `SANITY_PROJECT_ID`
 - `SANITY_DATASET`
 - `SANITY_WRITE_TOKEN`
 - `ADMIN_ORIGIN` (your Pages URL)
 
 **Pages environment variables (set in Cloudflare dashboard):**
+
 - `SANITY_PROJECT_ID`
 - `SANITY_DATASET`
 - `SANITY_API_VERSION`
@@ -88,6 +103,7 @@ See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
 ## Phase 3: Enhanced Admin ✅ COMPLETE
 
 ### Goals
+
 - [x] Functional "Upload New Comic" form in admin UI
 - [x] "Modify Comic" UI - list existing comics, edit form
 - [x] Hide/unhide comics functionality
@@ -101,6 +117,7 @@ See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
 ## Phase 4: Advanced Features (IN PROGRESS)
 
 ### Goals
+
 - [x] Comic navigation (prev/next links)
 - [ ] RSS feed
 - [ ] Social meta tags (Open Graph, Twitter cards)
@@ -109,14 +126,16 @@ See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
 - [ ] Multiple comic series support
 
 ### Comic Navigation Implementation
+
 - Added `getAdjacentComics()` query to `sanity.ts` - fetches prev/next comics by publishedAt date
 - Updated homepage (`index.astro`) with prev/next nav (next always disabled since it's latest)
 - Updated comic page (`comic/[slug].astro`) with full prev/next navigation
 - Navigation respects hidden comics (they're filtered out)
 
 ### AI Site Modification (Prototype)
+
 - **How it works**: User describes a change → Creates GitHub issue assigned to Copilot → Copilot creates PR → Cloudflare builds preview → User approves/rejects
-- **Worker endpoints**: 
+- **Worker endpoints**:
   - `POST /api/ai-mod/request` - Creates issue assigned to Copilot
   - `GET /api/ai-mod/status?issue=N` - Polls for PR + preview URL
   - `POST /api/ai-mod/approve` - Merges the PR
@@ -129,15 +148,15 @@ See [DEPLOY.md](./DEPLOY.md) for step-by-step instructions.
 
 ## Tech Stack Reference
 
-| Component | Technology |
-|-----------|------------|
-| Site Framework | Astro 5.x with SSR |
-| Hosting | Cloudflare Pages |
-| API | Cloudflare Workers |
-| CMS | Sanity.io |
-| Auth (planned) | Cloudflare Access |
-| Package Manager | pnpm 9.x |
-| Language | TypeScript |
+| Component       | Technology         |
+| --------------- | ------------------ |
+| Site Framework  | Astro 5.x with SSR |
+| Hosting         | Cloudflare Pages   |
+| API             | Cloudflare Workers |
+| CMS             | Sanity.io          |
+| Auth (planned)  | Cloudflare Access  |
+| Package Manager | pnpm 9.x           |
+| Language        | TypeScript         |
 
 ---
 

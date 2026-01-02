@@ -12,7 +12,9 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     Cloudflare Access.
   </p>
 
-  <div style="display: flex; flex-direction: column; gap: 1rem; max-width: 300px;">
+  <div
+    style="display: flex; flex-direction: column; gap: 1rem; max-width: 300px;"
+  >
     <button
       id="btn-upload"
       style="padding: 1rem; font-size: 1rem; cursor: pointer; background: #0066cc; color: white; border: none; border-radius: 4px;"
@@ -50,28 +52,56 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     style="display: none; margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;"
   >
     <h2>Upload New Comic</h2>
-    <form id="comic-form" style="display: flex; flex-direction: column; gap: 1rem;">
+    <form
+      id="comic-form"
+      style="display: flex; flex-direction: column; gap: 1rem;"
+    >
       <label>
         Title:
-        <input type="text" name="title" required style="width: 100%; padding: 0.5rem;" />
+        <input
+          type="text"
+          name="title"
+          required
+          style="width: 100%; padding: 0.5rem;"
+        />
       </label>
       <label>
         Slug:
-        <input type="text" name="slug" required style="width: 100%; padding: 0.5rem;" />
+        <input
+          type="text"
+          name="slug"
+          required
+          style="width: 100%; padding: 0.5rem;"
+        />
       </label>
       <label>
         Image:
-        <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" required />
+        <input
+          type="file"
+          name="image"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+          required
+        />
       </label>
       <label>
         Alt Text:
-        <input type="text" name="altText" style="width: 100%; padding: 0.5rem;" />
+        <input
+          type="text"
+          name="altText"
+          style="width: 100%; padding: 0.5rem;"
+        />
       </label>
       <label>
         Transcript:
-        <textarea name="transcript" rows="4" style="width: 100%; padding: 0.5rem;"></textarea>
+        <textarea
+          name="transcript"
+          rows="4"
+          style="width: 100%; padding: 0.5rem;"></textarea>
       </label>
-      <button type="submit" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <button
+        type="submit"
+        style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;"
+      >
         Submit
       </button>
     </form>
@@ -84,62 +114,115 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     style="display: none; margin-top: 2rem; padding: 1rem; background: #e8f4fc; border-radius: 4px;"
   >
     <h2>Modify Comic</h2>
-    
+
     <div style="margin-bottom: 1rem;">
-      <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+      <label
+        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;"
+      >
         <input type="checkbox" id="show-hidden-toggle" />
         Show hidden comics only
       </label>
     </div>
-    
+
     <div id="comic-selector" style="margin-bottom: 1rem;">
       <label>
         Select Comic:
-        <select id="comic-select" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+        <select
+          id="comic-select"
+          style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;"
+        >
           <option value="">Loading comics...</option>
         </select>
       </label>
     </div>
 
-    <form id="modify-comic-form" style="display: none; flex-direction: column; gap: 1rem;">
+    <form
+      id="modify-comic-form"
+      style="display: none; flex-direction: column; gap: 1rem;"
+    >
       <input type="hidden" name="comicId" id="modify-comic-id" />
-      
-      <div style="background: #f0f0f0; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">
-        <img id="modify-preview" src="" alt="Current comic" style="max-width: 200px; max-height: 150px; display: none;" />
-        <div id="hidden-badge" style="display: none; margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: #ffc107; color: #000; border-radius: 4px; font-size: 0.8rem; width: fit-content;">
+
+      <div
+        style="background: #f0f0f0; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;"
+      >
+        <img
+          id="modify-preview"
+          src=""
+          alt="Current comic"
+          style="max-width: 200px; max-height: 150px; display: none;"
+        />
+        <div
+          id="hidden-badge"
+          style="display: none; margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: #ffc107; color: #000; border-radius: 4px; font-size: 0.8rem; width: fit-content;"
+        >
           🙈 Hidden
         </div>
       </div>
-      
+
       <label>
         Title:
-        <input type="text" name="title" id="modify-title" style="width: 100%; padding: 0.5rem;" />
+        <input
+          type="text"
+          name="title"
+          id="modify-title"
+          style="width: 100%; padding: 0.5rem;"
+        />
       </label>
       <label>
         Slug:
-        <input type="text" name="slug" id="modify-slug" style="width: 100%; padding: 0.5rem;" />
+        <input
+          type="text"
+          name="slug"
+          id="modify-slug"
+          style="width: 100%; padding: 0.5rem;"
+        />
       </label>
       <label>
         Replace Image (optional):
-        <input type="file" name="image" id="modify-image" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" />
+        <input
+          type="file"
+          name="image"
+          id="modify-image"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+        />
       </label>
       <label>
         Alt Text:
-        <input type="text" name="altText" id="modify-alt" style="width: 100%; padding: 0.5rem;" />
+        <input
+          type="text"
+          name="altText"
+          id="modify-alt"
+          style="width: 100%; padding: 0.5rem;"
+        />
       </label>
       <label>
         Transcript:
-        <textarea name="transcript" id="modify-transcript" rows="4" style="width: 100%; padding: 0.5rem;"></textarea>
+        <textarea
+          name="transcript"
+          id="modify-transcript"
+          rows="4"
+          style="width: 100%; padding: 0.5rem;"></textarea>
       </label>
-      
+
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="submit" style="padding: 0.75rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button
+          type="submit"
+          style="padding: 0.75rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 4px; cursor: pointer;"
+        >
           💾 Save Changes
         </button>
-        <button type="button" id="btn-toggle-hide" style="padding: 0.75rem 1rem; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer;">
+        <button
+          type="button"
+          id="btn-toggle-hide"
+          style="padding: 0.75rem 1rem; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer;"
+        >
           🙈 Hide
         </button>
-        <button type="button" id="btn-delete" style="padding: 0.75rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button
+          type="button"
+          id="btn-delete"
+          style="padding: 0.75rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;"
+        >
           🗑️ Delete
         </button>
       </div>
@@ -148,15 +231,31 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 400px; margin: 1rem;">
-      <h3 style="margin-bottom: 1rem; color: #dc3545;">⚠️ Delete Comic Permanently?</h3>
-      <p style="margin-bottom: 1rem;">This action cannot be undone. The comic "<span id="delete-comic-title"></span>" will be permanently removed from Sanity.</p>
+  <div
+    id="delete-modal"
+    style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;"
+  >
+    <div
+      style="background: white; padding: 2rem; border-radius: 8px; max-width: 400px; margin: 1rem;"
+    >
+      <h3 style="margin-bottom: 1rem; color: #dc3545;">
+        ⚠️ Delete Comic Permanently?
+      </h3>
+      <p style="margin-bottom: 1rem;">
+        This action cannot be undone. The comic "<span id="delete-comic-title"
+        ></span>" will be permanently removed from Sanity.
+      </p>
       <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-        <button id="delete-cancel" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button
+          id="delete-cancel"
+          style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;"
+        >
           Cancel
         </button>
-        <button id="delete-confirm" style="padding: 0.5rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button
+          id="delete-confirm"
+          style="padding: 0.5rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;"
+        >
           Delete Forever
         </button>
       </div>
@@ -170,21 +269,24 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
   >
     <h2>🤖 Modify Site with AI</h2>
     <p style="color: #666; margin-bottom: 1rem;">
-      Describe what you want to change. Copilot will create a PR with the changes for you to review.
+      Describe what you want to change. Copilot will create a PR with the
+      changes for you to review.
     </p>
-    
+
     <!-- New Request Form -->
     <details id="ai-new-request" open style="margin-bottom: 1rem;">
-      <summary style="cursor: pointer; font-weight: bold; padding: 0.5rem 0;">➕ New Request</summary>
+      <summary style="cursor: pointer; font-weight: bold; padding: 0.5rem 0;"
+        >➕ New Request</summary
+      >
       <div style="padding: 0.5rem 0;">
-        <textarea 
-          id="ai-description" 
-          rows="3" 
+        <textarea
+          id="ai-description"
+          rows="3"
           placeholder="e.g., Add a dark mode toggle to the site header..."
           style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; resize: vertical;"
         ></textarea>
-        <button 
-          id="ai-submit" 
+        <button
+          id="ai-submit"
           style="margin-top: 0.5rem; padding: 0.75rem 1.5rem; background: #9b59b6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem;"
         >
           🚀 Submit Request
@@ -192,60 +294,102 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         <div id="ai-request-result" style="margin-top: 0.5rem;"></div>
       </div>
     </details>
-    
+
     <!-- Previous Requests List -->
     <div id="ai-requests-list" style="margin-top: 1rem;">
-      <h3 style="margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+      <h3
+        style="margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;"
+      >
         📋 Previous Requests
-        <button id="ai-refresh-list" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #9b59b6; color: white; border: none; border-radius: 4px; cursor: pointer;">↻ Refresh</button>
+        <button
+          id="ai-refresh-list"
+          style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #9b59b6; color: white; border: none; border-radius: 4px; cursor: pointer;"
+          >↻ Refresh</button
+        >
       </h3>
       <div id="ai-list-content" style="max-height: 300px; overflow-y: auto;">
         <p style="color: #666;">Loading...</p>
       </div>
     </div>
-    
+
     <!-- Selected Request Detail Panel -->
-    <div id="ai-detail-panel" style="display: none; margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; border: 2px solid #9b59b6;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+    <div
+      id="ai-detail-panel"
+      style="display: none; margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; border: 2px solid #9b59b6;"
+    >
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;"
+      >
         <h3 style="margin: 0;" id="ai-detail-title">Request Details</h3>
-        <button id="ai-close-detail" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">✕</button>
+        <button
+          id="ai-close-detail"
+          style="background: none; border: none; font-size: 1.2rem; cursor: pointer;"
+          >✕</button
+        >
       </div>
       <div id="ai-detail-status" style="margin-bottom: 0.5rem;"></div>
-      
+
       <!-- Preview Section -->
       <div id="ai-preview-section" style="display: none; margin-top: 1rem;">
         <h4 style="margin: 0 0 0.5rem 0;">Preview Your Changes</h4>
-        <div style="border: 2px solid #9b59b6; border-radius: 4px; overflow: hidden;">
-          <div style="background: #9b59b6; color: white; padding: 0.5rem; font-size: 0.8rem;">
+        <div
+          style="border: 2px solid #9b59b6; border-radius: 4px; overflow: hidden;"
+        >
+          <div
+            style="background: #9b59b6; color: white; padding: 0.5rem; font-size: 0.8rem;"
+          >
             ⚠️ This is a preview of the proposed changes
           </div>
-          <iframe 
-            id="ai-preview-iframe" 
-            src="" 
-            style="width: 100%; height: 350px; border: none;"
-          ></iframe>
+          <iframe
+            id="ai-preview-iframe"
+            src=""
+            style="width: 100%; height: 350px; border: none;"></iframe>
         </div>
-        <a id="ai-preview-link" href="" target="_blank" style="display: inline-block; margin-top: 0.5rem; color: #9b59b6;">
+        <a
+          id="ai-preview-link"
+          href=""
+          target="_blank"
+          style="display: inline-block; margin-top: 0.5rem; color: #9b59b6;"
+        >
           Open preview in new tab →
         </a>
       </div>
-      
+
       <!-- Action Buttons -->
-      <div id="ai-action-buttons" style="display: none; margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button id="ai-approve" style="padding: 0.75rem 1rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <div
+        id="ai-action-buttons"
+        style="display: none; margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;"
+      >
+        <button
+          id="ai-approve"
+          style="padding: 0.75rem 1rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;"
+        >
           ✅ Apply Changes
         </button>
-        <button id="ai-reject" style="padding: 0.75rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button
+          id="ai-reject"
+          style="padding: 0.75rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;"
+        >
           ❌ Discard
         </button>
-        <a id="ai-pr-link" href="" target="_blank" style="padding: 0.75rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; text-decoration: none;">
+        <a
+          id="ai-pr-link"
+          href=""
+          target="_blank"
+          style="padding: 0.75rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; text-decoration: none;"
+        >
           View PR on GitHub
         </a>
-        <a id="ai-issue-link" href="" target="_blank" style="padding: 0.75rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; text-decoration: none;">
+        <a
+          id="ai-issue-link"
+          href=""
+          target="_blank"
+          style="padding: 0.75rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; text-decoration: none;"
+        >
           View Issue
         </a>
       </div>
-      
+
       <div id="ai-action-result" style="margin-top: 0.5rem;"></div>
     </div>
   </div>
@@ -287,20 +431,20 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
-      
+
       const metadata = {
         title: formData.get('title'),
         slug: formData.get('slug'),
         altText: formData.get('altText'),
         transcript: formData.get('transcript'),
       };
-      
+
       const submitData = new FormData();
       submitData.append('json', JSON.stringify(metadata));
       submitData.append('image', formData.get('image'));
-      
+
       resultDiv.innerHTML = 'Uploading...';
-      
+
       try {
         const response = await fetch(`${workerUrl}/api/comics`, {
           method: 'POST',
@@ -321,13 +465,13 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     // Modify comic functionality
     let comicsCache = [];
     let showHiddenOnly = false;
-    
+
     const showHiddenToggle = document.getElementById('show-hidden-toggle');
     showHiddenToggle?.addEventListener('change', (e) => {
       showHiddenOnly = e.target.checked;
       updateComicSelect();
     });
-    
+
     async function loadComics() {
       const select = document.getElementById('comic-select');
       try {
@@ -343,32 +487,34 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         select.innerHTML = '<option value="">Failed to load comics</option>';
       }
     }
-    
+
     function updateComicSelect() {
       const select = document.getElementById('comic-select');
-      const filteredComics = showHiddenOnly 
-        ? comicsCache.filter(c => c.hidden === true)
-        : comicsCache.filter(c => c.hidden !== true);
-      
+      const filteredComics = showHiddenOnly
+        ? comicsCache.filter((c) => c.hidden === true)
+        : comicsCache.filter((c) => c.hidden !== true);
+
       select.innerHTML = '<option value="">Select a comic...</option>';
-      
+
       if (filteredComics.length === 0) {
         const emptyOption = document.createElement('option');
         emptyOption.value = '';
-        emptyOption.textContent = showHiddenOnly ? 'No hidden comics' : 'No visible comics';
+        emptyOption.textContent = showHiddenOnly
+          ? 'No hidden comics'
+          : 'No visible comics';
         emptyOption.disabled = true;
         select.appendChild(emptyOption);
         return;
       }
-      
-      filteredComics.forEach(comic => {
+
+      filteredComics.forEach((comic) => {
         const option = document.createElement('option');
         option.value = comic._id;
         const hiddenLabel = comic.hidden ? ' 🙈' : '';
         option.textContent = `${comic.title} (${comic.slug.current})${hiddenLabel}`;
         select.appendChild(option);
       });
-      
+
       // Reset form when switching views
       document.getElementById('modify-comic-form').style.display = 'none';
     }
@@ -377,23 +523,24 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     const modifyComicForm = document.getElementById('modify-comic-form');
     const hiddenBadge = document.getElementById('hidden-badge');
     const toggleHideBtn = document.getElementById('btn-toggle-hide');
-    
+
     comicSelect?.addEventListener('change', (e) => {
       const comicId = e.target.value;
       if (!comicId) {
         modifyComicForm.style.display = 'none';
         return;
       }
-      
-      const comic = comicsCache.find(c => c._id === comicId);
+
+      const comic = comicsCache.find((c) => c._id === comicId);
       if (!comic) return;
-      
+
       document.getElementById('modify-comic-id').value = comic._id;
       document.getElementById('modify-title').value = comic.title || '';
       document.getElementById('modify-slug').value = comic.slug?.current || '';
       document.getElementById('modify-alt').value = comic.altText || '';
-      document.getElementById('modify-transcript').value = comic.transcript || '';
-      
+      document.getElementById('modify-transcript').value =
+        comic.transcript || '';
+
       const preview = document.getElementById('modify-preview');
       if (comic.imageUrl) {
         preview.src = comic.imageUrl;
@@ -401,7 +548,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       } else {
         preview.style.display = 'none';
       }
-      
+
       // Update hidden badge and button
       if (comic.hidden) {
         hiddenBadge.style.display = 'block';
@@ -413,34 +560,34 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         toggleHideBtn.style.background = '#ffc107';
         toggleHideBtn.style.color = '#000';
       }
-      
+
       modifyComicForm.style.display = 'flex';
     });
 
     const modifyResultDiv = document.getElementById('modify-result');
-    
+
     modifyComicForm?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(modifyComicForm);
       const comicId = formData.get('comicId');
-      
+
       const metadata = {
         title: formData.get('title'),
         slug: formData.get('slug'),
         altText: formData.get('altText'),
         transcript: formData.get('transcript'),
       };
-      
+
       const submitData = new FormData();
       submitData.append('json', JSON.stringify(metadata));
-      
+
       const imageFile = formData.get('image');
       if (imageFile && imageFile.size > 0) {
         submitData.append('image', imageFile);
       }
-      
+
       modifyResultDiv.innerHTML = 'Saving changes...';
-      
+
       try {
         const response = await fetch(`${workerUrl}/api/comics/${comicId}`, {
           method: 'PATCH',
@@ -461,12 +608,14 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     // Hide/Unhide functionality
     toggleHideBtn?.addEventListener('click', async () => {
       const comicId = document.getElementById('modify-comic-id').value;
-      const comic = comicsCache.find(c => c._id === comicId);
+      const comic = comicsCache.find((c) => c._id === comicId);
       if (!comic) return;
-      
+
       const newHiddenState = !comic.hidden;
-      modifyResultDiv.innerHTML = newHiddenState ? 'Hiding comic...' : 'Unhiding comic...';
-      
+      modifyResultDiv.innerHTML = newHiddenState
+        ? 'Hiding comic...'
+        : 'Unhiding comic...';
+
       try {
         const response = await fetch(`${workerUrl}/api/comics/${comicId}`, {
           method: 'PATCH',
@@ -493,32 +642,35 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     const deleteConfirm = document.getElementById('delete-confirm');
     const deleteComicTitle = document.getElementById('delete-comic-title');
     let comicToDelete = null;
-    
+
     deleteBtn?.addEventListener('click', () => {
       const comicId = document.getElementById('modify-comic-id').value;
-      const comic = comicsCache.find(c => c._id === comicId);
+      const comic = comicsCache.find((c) => c._id === comicId);
       if (!comic) return;
-      
+
       comicToDelete = comic;
       deleteComicTitle.textContent = comic.title;
       deleteModal.style.display = 'flex';
     });
-    
+
     deleteCancel?.addEventListener('click', () => {
       deleteModal.style.display = 'none';
       comicToDelete = null;
     });
-    
+
     deleteConfirm?.addEventListener('click', async () => {
       if (!comicToDelete) return;
-      
+
       deleteModal.style.display = 'none';
       modifyResultDiv.innerHTML = 'Deleting comic permanently...';
-      
+
       try {
-        const response = await fetch(`${workerUrl}/api/comics/${comicToDelete._id}`, {
-          method: 'DELETE',
-        });
+        const response = await fetch(
+          `${workerUrl}/api/comics/${comicToDelete._id}`,
+          {
+            method: 'DELETE',
+          }
+        );
         const result = await response.json();
         if (result.success) {
           modifyResultDiv.innerHTML = `<span style="color: green;">✓ Comic "${comicToDelete.title}" deleted permanently.</span>`;
@@ -532,7 +684,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         modifyResultDiv.innerHTML = `<span style="color: red;">✗ Network error: ${err}</span>`;
       }
     });
-    
+
     // Close modal on backdrop click
     deleteModal?.addEventListener('click', (e) => {
       if (e.target === deleteModal) {
@@ -573,11 +725,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
 
     async function loadAiRequestsList() {
       aiListContent.innerHTML = '<p style="color: #666;">Loading...</p>';
-      
+
       try {
         const response = await fetch(`${workerUrl}/api/ai-mod/list`);
         const result = await response.json();
-        
+
         if (result.success) {
           aiRequestsCache = result.data;
           renderAiRequestsList();
@@ -591,16 +743,18 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
 
     function renderAiRequestsList() {
       if (aiRequestsCache.length === 0) {
-        aiListContent.innerHTML = '<p style="color: #666;">No requests yet. Submit one above!</p>';
+        aiListContent.innerHTML =
+          '<p style="color: #666;">No requests yet. Submit one above!</p>';
         return;
       }
 
-      const html = aiRequestsCache.map(req => {
-        const statusIcon = getStatusIcon(req.status);
-        const date = new Date(req.createdAt).toLocaleDateString();
-        const stateClass = req.issueState === 'closed' ? 'color: #666;' : '';
-        
-        return `
+      const html = aiRequestsCache
+        .map((req) => {
+          const statusIcon = getStatusIcon(req.status);
+          const date = new Date(req.createdAt).toLocaleDateString();
+          const stateClass = req.issueState === 'closed' ? 'color: #666;' : '';
+
+          return `
           <div 
             class="ai-request-item" 
             data-issue="${req.issueNumber}"
@@ -617,15 +771,18 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
             </div>
           </div>
         `;
-      }).join('');
+        })
+        .join('');
 
       aiListContent.innerHTML = html;
 
       // Add click handlers
-      aiListContent.querySelectorAll('.ai-request-item').forEach(item => {
+      aiListContent.querySelectorAll('.ai-request-item').forEach((item) => {
         item.addEventListener('click', () => {
           const issueNumber = parseInt(item.dataset.issue);
-          const req = aiRequestsCache.find(r => r.issueNumber === issueNumber);
+          const req = aiRequestsCache.find(
+            (r) => r.issueNumber === issueNumber
+          );
           if (req) showRequestDetail(req);
         });
       });
@@ -633,31 +790,46 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
 
     function getStatusIcon(status) {
       switch (status) {
-        case 'pending': return '⏳';
-        case 'pr_created': return '🔨';
-        case 'preview_ready': return '👁️';
-        case 'merged': return '✅';
-        default: return '❓';
+        case 'pending':
+          return '⏳';
+        case 'pr_created':
+          return '🔨';
+        case 'preview_ready':
+          return '👁️';
+        case 'merged':
+          return '✅';
+        default:
+          return '❓';
       }
     }
 
     function getStatusColor(status) {
       switch (status) {
-        case 'pending': return '#f5a623';
-        case 'pr_created': return '#4a9eff';
-        case 'preview_ready': return '#9b59b6';
-        case 'merged': return '#28a745';
-        default: return '#ccc';
+        case 'pending':
+          return '#f5a623';
+        case 'pr_created':
+          return '#4a9eff';
+        case 'preview_ready':
+          return '#9b59b6';
+        case 'merged':
+          return '#28a745';
+        default:
+          return '#ccc';
       }
     }
 
     function getStatusLabel(status) {
       switch (status) {
-        case 'pending': return 'Waiting for Copilot';
-        case 'pr_created': return 'PR created, building preview';
-        case 'preview_ready': return 'Preview ready';
-        case 'merged': return 'Applied';
-        default: return status;
+        case 'pending':
+          return 'Waiting for Copilot';
+        case 'pr_created':
+          return 'PR created, building preview';
+        case 'preview_ready':
+          return 'Preview ready';
+        case 'merged':
+          return 'Applied';
+        default:
+          return status;
       }
     }
 
@@ -735,7 +907,8 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     aiSubmitBtn?.addEventListener('click', async () => {
       const description = aiDescription.value.trim();
       if (!description) {
-        aiRequestResult.innerHTML = '<span style="color: red;">Please enter a description</span>';
+        aiRequestResult.innerHTML =
+          '<span style="color: red;">Please enter a description</span>';
         return;
       }
 
@@ -749,11 +922,13 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
           body: JSON.stringify({ description }),
         });
         const result = await response.json();
-        
+
         if (result.success) {
-          const copilotNote = result.data.copilotAssigned 
-            ? '' 
-            : '<br><span style="color: #f5a623;">⚠️ Copilot not auto-assigned. <a href="' + result.data.issueUrl + '" target="_blank">Assign @copilot manually</a>.</span>';
+          const copilotNote = result.data.copilotAssigned
+            ? ''
+            : '<br><span style="color: #f5a623;">⚠️ Copilot not auto-assigned. <a href="' +
+              result.data.issueUrl +
+              '" target="_blank">Assign @copilot manually</a>.</span>';
           aiRequestResult.innerHTML = `<span style="color: green;">✓ Created! <a href="${result.data.issueUrl}" target="_blank">Issue #${result.data.issueNumber}</a></span>${copilotNote}`;
           aiDescription.value = '';
           // Refresh the list
@@ -770,7 +945,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
 
     aiApproveBtn?.addEventListener('click', async () => {
       if (!currentAiRequest?.prNumber) return;
-      
+
       aiApproveBtn.disabled = true;
       aiActionResult.innerHTML = '⏳ Applying changes...';
 
@@ -781,9 +956,10 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
           body: JSON.stringify({ prNumber: currentAiRequest.prNumber }),
         });
         const result = await response.json();
-        
+
         if (result.success) {
-          aiActionResult.innerHTML = '<span style="color: green;">✓ Changes applied! Site will update shortly.</span>';
+          aiActionResult.innerHTML =
+            '<span style="color: green;">✓ Changes applied! Site will update shortly.</span>';
           currentAiRequest.status = 'merged';
           showRequestDetail(currentAiRequest);
           loadAiRequestsList();
@@ -799,7 +975,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
 
     aiRejectBtn?.addEventListener('click', async () => {
       if (!currentAiRequest?.prNumber) return;
-      
+
       aiRejectBtn.disabled = true;
       aiActionResult.innerHTML = '⏳ Discarding changes...';
 
@@ -807,15 +983,16 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         const response = await fetch(`${workerUrl}/api/ai-mod/reject`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             prNumber: currentAiRequest.prNumber,
             issueNumber: currentAiRequest.issueNumber,
           }),
         });
         const result = await response.json();
-        
+
         if (result.success) {
-          aiActionResult.innerHTML = '<span style="color: green;">✓ Changes discarded.</span>';
+          aiActionResult.innerHTML =
+            '<span style="color: green;">✓ Changes discarded.</span>';
           aiDetailPanel.style.display = 'none';
           currentAiRequest = null;
           loadAiRequestsList();

@@ -1,6 +1,7 @@
 # Webcomic Blueprint
 
 A monorepo template for building webcomic websites with:
+
 - **Astro** - Static site generation with SSR support
 - **Cloudflare Pages** - Hosting for the public site
 - **Cloudflare Workers** - API for admin operations
@@ -91,6 +92,7 @@ pnpm dev
 ```
 
 This starts:
+
 - Astro dev server at `http://localhost:4321`
 - Worker dev server at `http://localhost:8787`
 
@@ -101,6 +103,7 @@ This starts:
 Create a new comic episode.
 
 **Request:** `multipart/form-data`
+
 - `json` - JSON string with comic metadata
 - `image` - Image file (png/jpg/webp/gif/avif, max 40MB)
 
@@ -113,6 +116,7 @@ curl -X POST http://localhost:8787/api/comics \
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -152,12 +156,12 @@ curl http://localhost:8787/health
 
 ## Site Routes
 
-| Route | Description |
-|-------|-------------|
-| `/` | Latest comic |
-| `/comic/[slug]` | Single comic by slug |
-| `/archive` | List of all comics |
-| `/admin` | Admin panel (protected in production) |
+| Route           | Description                           |
+| --------------- | ------------------------------------- |
+| `/`             | Latest comic                          |
+| `/comic/[slug]` | Single comic by slug                  |
+| `/archive`      | List of all comics                    |
+| `/admin`        | Admin panel (protected in production) |
 
 ## Deployment
 

@@ -1,16 +1,16 @@
 /**
  * Sanity Schema Definition for Comic Episodes
- * 
+ *
  * To use this schema:
  * 1. Create a new Sanity project at https://sanity.io/manage
  * 2. Initialize Sanity Studio in your project (or use the hosted Studio)
  * 3. Add this schema to your Sanity Studio's schema.ts
- * 
+ *
  * If using Sanity Studio v3, add to your sanity.config.ts:
- * 
+ *
  * import { defineConfig } from 'sanity'
  * import { comicEpisode } from './schemas/comicEpisode'
- * 
+ *
  * export default defineConfig({
  *   // ...
  *   schema: {

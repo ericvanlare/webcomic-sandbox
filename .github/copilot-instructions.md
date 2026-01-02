@@ -22,21 +22,25 @@ sanity/                      # Sanity CMS schema definitions
 ## Key Files for Common Changes
 
 ### Styling/Theming
+
 - `apps/site/src/layouts/BaseLayout.astro` - Global layout, header, footer, base styles
 - `apps/site/src/pages/*.astro` - Page-specific styles (use `<style>` blocks)
 
 ### Layout/Navigation
+
 - `apps/site/src/layouts/BaseLayout.astro` - Header, nav, footer
 - `apps/site/src/pages/index.astro` - Homepage layout
 - `apps/site/src/pages/comic/[slug].astro` - Comic page layout with prev/next nav
 
 ### Content Display
+
 - `apps/site/src/pages/index.astro` - Latest comic display
 - `apps/site/src/pages/comic/[slug].astro` - Individual comic page
 - `apps/site/src/pages/archive.astro` - Archive listing
 - `apps/site/src/lib/sanity.ts` - CMS queries
 
 ### Admin Panel
+
 - `apps/site/src/pages/admin/index.astro` - Admin UI
 
 ## Tech Stack
@@ -58,6 +62,7 @@ sanity/                      # Sanity CMS schema definitions
 ## Environment Variables
 
 Environment variables are accessed via `astro:env/server`:
+
 ```typescript
 import { SANITY_PROJECT_ID } from 'astro:env/server';
 ```
