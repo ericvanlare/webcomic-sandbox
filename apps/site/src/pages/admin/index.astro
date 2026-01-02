@@ -7,7 +7,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
 
 <BaseLayout title="Admin Panel">
   <h1>Admin Panel</h1>
-  <p style="color: #666; margin-bottom: 2rem;">
+  <p class="admin-description">
     Manage your webcomic. In production, this page will be protected by
     Cloudflare Access.
   </p>
@@ -47,17 +47,18 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
   <!-- Upload New Comic Form -->
   <div
     id="upload-form"
-    style="display: none; margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;"
+    class="admin-panel"
+    style="display: none; margin-top: 2rem; padding: 1rem; border-radius: 4px;"
   >
     <h2>Upload New Comic</h2>
     <form id="comic-form" style="display: flex; flex-direction: column; gap: 1rem;">
       <label>
         Title:
-        <input type="text" name="title" required style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="title" required class="admin-input" style="width: 100%; padding: 0.5rem;" />
       </label>
       <label>
         Slug:
-        <input type="text" name="slug" required style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="slug" required class="admin-input" style="width: 100%; padding: 0.5rem;" />
       </label>
       <label>
         Image:
@@ -65,11 +66,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       </label>
       <label>
         Alt Text:
-        <input type="text" name="altText" style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="altText" class="admin-input" style="width: 100%; padding: 0.5rem;" />
       </label>
       <label>
         Transcript:
-        <textarea name="transcript" rows="4" style="width: 100%; padding: 0.5rem;"></textarea>
+        <textarea name="transcript" rows="4" class="admin-input" style="width: 100%; padding: 0.5rem;"></textarea>
       </label>
       <button type="submit" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
         Submit
@@ -81,7 +82,8 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
   <!-- Modify Comic UI -->
   <div
     id="modify-form"
-    style="display: none; margin-top: 2rem; padding: 1rem; background: #e8f4fc; border-radius: 4px;"
+    class="admin-panel modify-panel"
+    style="display: none; margin-top: 2rem; padding: 1rem; border-radius: 4px;"
   >
     <h2>Modify Comic</h2>
     
@@ -95,7 +97,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     <div id="comic-selector" style="margin-bottom: 1rem;">
       <label>
         Select Comic:
-        <select id="comic-select" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+        <select id="comic-select" class="admin-input" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
           <option value="">Loading comics...</option>
         </select>
       </label>
@@ -104,7 +106,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     <form id="modify-comic-form" style="display: none; flex-direction: column; gap: 1rem;">
       <input type="hidden" name="comicId" id="modify-comic-id" />
       
-      <div style="background: #f0f0f0; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">
+      <div class="preview-box" style="padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">
         <img id="modify-preview" src="" alt="Current comic" style="max-width: 200px; max-height: 150px; display: none;" />
         <div id="hidden-badge" style="display: none; margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: #ffc107; color: #000; border-radius: 4px; font-size: 0.8rem; width: fit-content;">
           🙈 Hidden
@@ -113,11 +115,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       
       <label>
         Title:
-        <input type="text" name="title" id="modify-title" style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="title" id="modify-title" class="admin-input" style="width: 100%; padding: 0.5rem;" />
       </label>
       <label>
         Slug:
-        <input type="text" name="slug" id="modify-slug" style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="slug" id="modify-slug" class="admin-input" style="width: 100%; padding: 0.5rem;" />
       </label>
       <label>
         Replace Image (optional):
@@ -125,11 +127,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       </label>
       <label>
         Alt Text:
-        <input type="text" name="altText" id="modify-alt" style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="altText" id="modify-alt" class="admin-input" style="width: 100%; padding: 0.5rem;" />
       </label>
       <label>
         Transcript:
-        <textarea name="transcript" id="modify-transcript" rows="4" style="width: 100%; padding: 0.5rem;"></textarea>
+        <textarea name="transcript" id="modify-transcript" rows="4" class="admin-input" style="width: 100%; padding: 0.5rem;"></textarea>
       </label>
       
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -148,8 +150,8 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 400px; margin: 1rem;">
+  <div id="delete-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="modal-content" style="padding: 2rem; border-radius: 8px; max-width: 400px; margin: 1rem;">
       <h3 style="margin-bottom: 1rem; color: #dc3545;">⚠️ Delete Comic Permanently?</h3>
       <p style="margin-bottom: 1rem;">This action cannot be undone. The comic "<span id="delete-comic-title"></span>" will be permanently removed from Sanity.</p>
       <div style="display: flex; gap: 1rem; justify-content: flex-end;">
@@ -166,10 +168,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
   <!-- AI Site Modification -->
   <div
     id="ai-mod-panel"
-    style="display: none; margin-top: 2rem; padding: 1rem; background: #e7d4f5; border-radius: 4px; max-width: 600px;"
+    class="admin-panel ai-panel"
+    style="display: none; margin-top: 2rem; padding: 1rem; border-radius: 4px; max-width: 600px;"
   >
     <h2>🤖 Modify Site with AI</h2>
-    <p style="color: #666; margin-bottom: 1rem;">
+    <p style="color: var(--text-secondary); margin-bottom: 1rem;">
       Describe what you want to change. Copilot will create a PR with the changes for you to review.
     </p>
     
@@ -179,7 +182,8 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         id="ai-description" 
         rows="4" 
         placeholder="e.g., Add a dark mode toggle to the site header..."
-        style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; resize: vertical;"
+        class="admin-input"
+        style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1rem; resize: vertical;"
       ></textarea>
       <button 
         id="ai-submit" 
@@ -191,7 +195,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     </div>
     
     <!-- Status Panel (shown after request) -->
-    <div id="ai-status-panel" style="display: none; margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px;">
+    <div id="ai-status-panel" class="status-panel" style="display: none; margin-top: 1rem; padding: 1rem; border-radius: 4px;">
       <h3 style="margin: 0 0 0.5rem 0;">Request Status</h3>
       <div id="ai-status-content">
         <p>⏳ Waiting for Copilot to pick up the issue...</p>
@@ -712,3 +716,49 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     });
   </script>
 </BaseLayout>
+
+<style>
+  .admin-description {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+  }
+
+  .admin-panel {
+    background: var(--bg-secondary);
+  }
+
+  .modify-panel {
+    background-color: #e8f4fc;
+  }
+
+  [data-theme="dark"] .modify-panel {
+    background-color: #1a3a4a;
+  }
+
+  .ai-panel {
+    background-color: #e7d4f5;
+  }
+
+  [data-theme="dark"] .ai-panel {
+    background-color: #3a2a4a;
+  }
+
+  .admin-input {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+  }
+
+  .preview-box {
+    background: var(--bg-secondary);
+  }
+
+  .modal-content {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  .status-panel {
+    background: var(--bg-primary);
+  }
+</style>
