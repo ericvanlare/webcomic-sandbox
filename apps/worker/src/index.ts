@@ -424,6 +424,39 @@ async function githubApi<T>(
   return response.json() as Promise<T>;
 }
 
+interface GraphQLResponse<T> {
+  data?: T;
+  errors?: Array<{ message: string }>;
+}
+
+async function githubGraphQL<T>(
+  env: Env,
+  query: string,
+  variables: Record<string, unknown> = {}
+): Promise<T> {
+  const response = await fetch('https://api.github.com/graphql', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'webcomic-api',
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`GitHub GraphQL error: ${response.status} ${text}`);
+  }
+
+  const result = await response.json() as GraphQLResponse<T>;
+  if (result.errors && result.errors.length > 0) {
+    throw new Error(`GitHub GraphQL error: ${result.errors[0].message}`);
+  }
+
+  return result.data as T;
+}
+
 async function handleAiModRequest(
   request: Request,
   env: Env,
@@ -440,7 +473,6 @@ async function handleAiModRequest(
       );
     }
 
-    // Create GitHub issue assigned to Copilot
     const issueBody = `## Site Modification Request
 
 ${body.description}
@@ -449,6 +481,7 @@ ${body.description}
 *This issue was created from the admin panel. Copilot will work on this and create a PR.*
 `;
 
+    // Step 1: Create the issue without assignees first
     const issue = await githubApi<GitHubIssue>(
       env,
       `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`,
@@ -458,11 +491,92 @@ ${body.description}
         body: JSON.stringify({
           title: `[AI] ${body.description.slice(0, 60)}${body.description.length > 60 ? '...' : ''}`,
           body: issueBody,
-          assignees: ['copilot'],
           labels: ['ai-modification'],
         }),
       }
     );
+
+    // Step 2: Assign Copilot using GraphQL (REST API doesn't support bot assignees)
+    let copilotAssigned = false;
+    try {
+      // First, find Copilot bot ID using suggestedActors
+      interface SuggestedActorsResponse {
+        repository: {
+          suggestedActors: {
+            nodes: Array<{ login: string; id: string; __typename: string }>;
+          };
+        };
+      }
+      
+      const actorsResult = await githubGraphQL<SuggestedActorsResponse>(
+        env,
+        `query($owner: String!, $name: String!) {
+          repository(owner: $owner, name: $name) {
+            suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 20) {
+              nodes {
+                login
+                __typename
+                ... on Bot {
+                  id
+                }
+                ... on User {
+                  id
+                }
+              }
+            }
+          }
+        }`,
+        { owner: GITHUB_OWNER, name: GITHUB_REPO }
+      );
+
+      const copilotBot = actorsResult.repository.suggestedActors.nodes.find(
+        (node) => node.login === 'copilot-swe-agent' && node.__typename === 'Bot'
+      );
+
+      if (copilotBot) {
+        // Get the issue's GraphQL ID
+        interface IssueIdResponse {
+          repository: { issue: { id: string } };
+        }
+        
+        const issueResult = await githubGraphQL<IssueIdResponse>(
+          env,
+          `query($owner: String!, $name: String!, $number: Int!) {
+            repository(owner: $owner, name: $name) {
+              issue(number: $number) {
+                id
+              }
+            }
+          }`,
+          { owner: GITHUB_OWNER, name: GITHUB_REPO, number: issue.number }
+        );
+
+        // Assign Copilot to the issue
+        await githubGraphQL<unknown>(
+          env,
+          `mutation($issueId: ID!, $assigneeIds: [ID!]!) {
+            addAssigneesToAssignable(input: {
+              assignableId: $issueId,
+              assigneeIds: $assigneeIds
+            }) {
+              assignable {
+                ... on Issue {
+                  id
+                }
+              }
+            }
+          }`,
+          { 
+            issueId: issueResult.repository.issue.id, 
+            assigneeIds: [copilotBot.id] 
+          }
+        );
+        copilotAssigned = true;
+      }
+    } catch {
+      // Copilot assignment failed - user may not have Copilot Pro/Pro+ enabled
+      // The issue is still created, user can manually assign Copilot
+    }
 
     return jsonResponse({
       success: true,
@@ -470,6 +584,7 @@ ${body.description}
         issueNumber: issue.number,
         issueUrl: issue.html_url,
         status: 'pending',
+        copilotAssigned,
       },
     }, 201, cors);
   } catch (err) {
