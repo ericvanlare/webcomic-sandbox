@@ -387,6 +387,7 @@ interface GitHubPullRequest {
   head: { ref: string };
   mergeable: boolean | null;
   merged: boolean;
+  body: string | null;
 }
 
 interface GitHubDeployment {
@@ -623,14 +624,22 @@ async function handleAiModStatus(
     // Search for PRs that reference this issue
     const prs = await githubApi<GitHubPullRequest[]>(
       env,
-      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls?state=all&per_page=10`
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls?state=all&per_page=20`
     );
 
-    // Find PR that mentions this issue (Copilot usually links them)
-    const linkedPr = prs.find(pr => 
-      pr.head.ref.includes(issueNumber) || 
-      pr.head.ref.includes(`issue-${issueNumber}`)
-    );
+    // Find PR that mentions this issue (check branch name and body for "Fixes #N")
+    const linkedPr = prs.find(pr => {
+      if (pr.head.ref.includes(issueNumber) || pr.head.ref.includes(`issue-${issueNumber}`)) {
+        return true;
+      }
+      if (pr.body) {
+        const fixesPattern = new RegExp(`(fixes|closes|resolves)\\s+.*#${issueNumber}\\b`, 'i');
+        if (fixesPattern.test(pr.body)) {
+          return true;
+        }
+      }
+      return false;
+    });
 
     let previewUrl: string | null = null;
     let prStatus: string = 'not_found';
@@ -638,27 +647,10 @@ async function handleAiModStatus(
     if (linkedPr) {
       prStatus = linkedPr.merged ? 'merged' : linkedPr.state;
 
-      // Get deployments for the PR branch to find preview URL
-      try {
-        const deployments = await githubApi<GitHubDeployment[]>(
-          env,
-          `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments?ref=${linkedPr.head.ref}&per_page=5`
-        );
-
-        for (const deployment of deployments) {
-          const statuses = await githubApi<GitHubDeploymentStatus[]>(
-            env,
-            `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments/${deployment.id}/statuses`
-          );
-          
-          const successStatus = statuses.find(s => s.state === 'success' && s.environment_url);
-          if (successStatus?.environment_url) {
-            previewUrl = successStatus.environment_url;
-            break;
-          }
-        }
-      } catch {
-        // Deployments might not exist yet
+      // Cloudflare Pages preview URLs follow a pattern based on branch name
+      if (!linkedPr.merged) {
+        const branchSlug = linkedPr.head.ref.replace(/\//g, '-').toLowerCase();
+        previewUrl = `https://${branchSlug}.webcomic-sandbox.pages.dev`;
       }
     }
 
@@ -680,6 +672,99 @@ async function handleAiModStatus(
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(
       { success: false, error: 'Failed to get status', details: message },
+      500,
+      cors
+    );
+  }
+}
+
+interface GitHubIssueListItem {
+  number: number;
+  title: string;
+  state: string;
+  created_at: string;
+  html_url: string;
+}
+
+async function handleAiModList(
+  env: Env,
+  cors: HeadersInit
+): Promise<Response> {
+  try {
+    // Get all issues with ai-modification label
+    const issues = await githubApi<GitHubIssueListItem[]>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues?labels=ai-modification&state=all&per_page=20&sort=created&direction=desc`
+    );
+
+    // Get all PRs to match with issues
+    const prs = await githubApi<GitHubPullRequest[]>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls?state=all&per_page=30`
+    );
+
+    // Build list with status info
+    const requests = await Promise.all(
+      issues.map(async (issue) => {
+        const issueNumStr = String(issue.number);
+        // Check for PR linked via branch name or "Fixes #N" in body
+        const linkedPr = prs.find(pr => {
+          // Check branch name
+          if (pr.head.ref.includes(issueNumStr) || pr.head.ref.includes(`issue-${issueNumStr}`)) {
+            return true;
+          }
+          // Check body for "Fixes #N" or "Closes #N" patterns
+          if (pr.body) {
+            const fixesPattern = new RegExp(`(fixes|closes|resolves)\\s+.*#${issue.number}\\b`, 'i');
+            if (fixesPattern.test(pr.body)) {
+              return true;
+            }
+          }
+          return false;
+        });
+
+        let previewUrl: string | null = null;
+        let status = 'pending';
+
+        if (linkedPr) {
+          status = linkedPr.merged ? 'merged' : 'pr_created';
+
+          // Cloudflare Pages preview URLs follow a pattern based on branch name
+          // Format: https://<branch-slug>.<project>.pages.dev
+          // Branch names get sanitized: slashes become dashes, lowercase
+          if (!linkedPr.merged) {
+            const branchSlug = linkedPr.head.ref.replace(/\//g, '-').toLowerCase();
+            previewUrl = `https://${branchSlug}.webcomic-sandbox.pages.dev`;
+            status = 'preview_ready';
+          }
+        }
+
+        // Extract description from title (remove [AI] prefix)
+        const description = issue.title.replace(/^\[AI\]\s*/, '');
+
+        return {
+          issueNumber: issue.number,
+          issueUrl: issue.html_url,
+          issueState: issue.state,
+          description,
+          createdAt: issue.created_at,
+          prNumber: linkedPr?.number ?? null,
+          prUrl: linkedPr?.html_url ?? null,
+          prState: linkedPr ? (linkedPr.merged ? 'merged' : linkedPr.state) : null,
+          previewUrl,
+          status,
+        };
+      })
+    );
+
+    return jsonResponse({
+      success: true,
+      data: requests,
+    }, 200, cors);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return jsonResponse(
+      { success: false, error: 'Failed to list requests', details: message },
       500,
       cors
     );
@@ -814,6 +899,10 @@ export default {
     // AI Modification routes
     if (url.pathname === '/api/ai-mod/request' && request.method === 'POST') {
       return handleAiModRequest(request, env, cors);
+    }
+
+    if (url.pathname === '/api/ai-mod/list' && request.method === 'GET') {
+      return handleAiModList(env, cors);
     }
 
     if (url.pathname === '/api/ai-mod/status' && request.method === 'GET') {
