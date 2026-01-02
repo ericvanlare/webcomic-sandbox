@@ -561,7 +561,10 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         
         if (result.success) {
           currentAiRequest = result.data;
-          aiRequestResult.innerHTML = `<span style="color: green;">✓ Request created! <a href="${result.data.issueUrl}" target="_blank">View issue #${result.data.issueNumber}</a></span>`;
+          const copilotNote = result.data.copilotAssigned 
+            ? '' 
+            : '<br><span style="color: #f5a623;">⚠️ Copilot not auto-assigned. <a href="' + result.data.issueUrl + '" target="_blank">Assign @copilot manually</a> in the issue.</span>';
+          aiRequestResult.innerHTML = `<span style="color: green;">✓ Request created! <a href="${result.data.issueUrl}" target="_blank">View issue #${result.data.issueNumber}</a></span>${copilotNote}`;
           aiStatusPanel.style.display = 'block';
           startPolling(result.data.issueNumber);
         } else {
