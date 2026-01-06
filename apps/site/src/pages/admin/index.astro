@@ -90,7 +90,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       
       <div style="background: var(--bg-secondary); padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem; border: 1px solid var(--border-color);">
         <img id="modify-preview" src="" alt="Current comic" style="max-width: 200px; max-height: 150px; display: none;" />
-        <div id="hidden-badge" style="display: none; margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: #ffc107; color: #000; border-radius: 4px; font-size: 0.8rem; width: fit-content;">
+        <div id="hidden-badge" class="hidden-badge">
           🙈 Hidden
         </div>
       </div>
@@ -1105,6 +1105,18 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       display: flex;
       gap: 1rem;
       justify-content: flex-end;
+    }
+
+    .hidden-badge {
+      display: none;
+      margin-top: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      background: #ffc107;
+      color: #000;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      width: fit-content;
+      font-weight: 500;
     }
   </style>
 </BaseLayout>

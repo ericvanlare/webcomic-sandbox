@@ -140,6 +140,24 @@ const { title } = Astro.props;
       .theme-toggle:hover {
         opacity: 0.8;
       }
+
+      details {
+        margin-top: 1rem;
+      }
+
+      details summary {
+        cursor: pointer;
+        color: var(--text-secondary);
+      }
+
+      details pre {
+        white-space: pre-wrap;
+        background: var(--bg-secondary);
+        padding: 1rem;
+        margin-top: 0.5rem;
+        border-radius: 4px;
+        color: var(--text-primary);
+      }
     </style>
   </head>
   <body>
@@ -164,7 +182,7 @@ const { title } = Astro.props;
       html.setAttribute('data-theme', savedTheme);
       updateIcon(savedTheme);
 
-      function updateIcon(theme: string) {
+      function updateIcon(theme) {
         if (themeIcon) {
           themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
         }
