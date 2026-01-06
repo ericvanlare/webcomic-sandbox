@@ -230,25 +230,25 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         </a>
       </div>
       
-      <!-- Iterate Section (Request Changes) -->
-      <div id="ai-iterate-section" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8f4fc; border-radius: 4px; border: 1px solid #9b59b6;">
-        <h4 style="margin: 0 0 0.5rem 0;">💬 Request Additional Changes</h4>
+      <!-- Request Changes Section -->
+      <div id="ai-revise-section" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8f4fc; border-radius: 4px; border: 1px solid #9b59b6;">
+        <h4 style="margin: 0 0 0.5rem 0;">✏️ Request Changes</h4>
         <p style="color: #666; font-size: 0.85rem; margin-bottom: 0.5rem;">
-          Not quite right? Tell Copilot what else to change. It will update the same PR.
+          Not quite right? Describe what to change and Copilot will create a new version.
         </p>
         <textarea 
-          id="ai-iterate-feedback" 
+          id="ai-revise-feedback" 
           rows="2" 
-          placeholder="e.g., Also make the button bigger and change the color to blue..."
+          placeholder="e.g., Make the button bigger and change the color to blue..."
           style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; resize: vertical;"
         ></textarea>
         <button 
-          id="ai-iterate-submit" 
+          id="ai-revise-submit" 
           style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #9b59b6; color: white; border: none; border-radius: 4px; cursor: pointer;"
         >
-          Send to Copilot
+          Request Changes
         </button>
-        <span id="ai-iterate-result" style="margin-left: 0.5rem;"></span>
+        <span id="ai-revise-result" style="margin-left: 0.5rem;"></span>
       </div>
       
       <!-- Action Buttons -->
@@ -585,10 +585,10 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     const aiPrLink = document.getElementById('ai-pr-link');
     const aiIssueLink = document.getElementById('ai-issue-link');
     const aiActionResult = document.getElementById('ai-action-result');
-    const aiIterateSection = document.getElementById('ai-iterate-section');
-    const aiIterateFeedback = document.getElementById('ai-iterate-feedback');
-    const aiIterateSubmit = document.getElementById('ai-iterate-submit');
-    const aiIterateResult = document.getElementById('ai-iterate-result');
+    const aiReviseSection = document.getElementById('ai-revise-section');
+    const aiReviseFeedback = document.getElementById('ai-revise-feedback');
+    const aiReviseSubmit = document.getElementById('ai-revise-submit');
+    const aiReviseResult = document.getElementById('ai-revise-result');
 
     let currentAiRequest = null;
     let aiRequestsCache = [];
@@ -663,9 +663,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     function getStatusIcon(status) {
       switch (status) {
         case 'pending': return '⏳';
-        case 'pr_created': return '🔨';
+        case 'building': return '🔨';
         case 'preview_ready': return '👁️';
-        case 'merged': return '✅';
+        case 'applied': return '✅';
+        case 'replaced': return '🔄';
+        case 'discarded': return '❌';
         default: return '❓';
       }
     }
@@ -673,9 +675,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     function getStatusColor(status) {
       switch (status) {
         case 'pending': return '#f5a623';
-        case 'pr_created': return '#4a9eff';
+        case 'building': return '#4a9eff';
         case 'preview_ready': return '#9b59b6';
-        case 'merged': return '#28a745';
+        case 'applied': return '#28a745';
+        case 'replaced': return '#999';
+        case 'discarded': return '#dc3545';
         default: return '#ccc';
       }
     }
@@ -683,9 +687,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     function getStatusLabel(status) {
       switch (status) {
         case 'pending': return 'Waiting for Copilot';
-        case 'pr_created': return 'PR created, building preview';
-        case 'preview_ready': return 'Preview ready';
-        case 'merged': return 'Applied';
+        case 'building': return 'Building preview...';
+        case 'preview_ready': return 'Ready to review';
+        case 'applied': return 'Applied';
+        case 'replaced': return 'Replaced';
+        case 'discarded': return 'Discarded';
         default: return status;
       }
     }
@@ -701,53 +707,54 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       aiDetailTitle.textContent = req.description;
       aiIssueLink.href = req.issueUrl;
       aiActionResult.innerHTML = '';
-      aiIterateFeedback.value = '';
-      aiIterateResult.innerHTML = '';
+      aiReviseFeedback.value = '';
+      aiReviseResult.innerHTML = '';
 
       // Set status
       let statusHtml = '';
       switch (req.status) {
         case 'pending':
           statusHtml = `<p>⏳ <strong>Waiting for Copilot...</strong></p>
-            <p style="color: #666; font-size: 0.9rem;">Copilot should pick up issue #${req.issueNumber} shortly.</p>`;
+            <p style="color: #666; font-size: 0.9rem;">Copilot should pick up this request shortly.</p>`;
           aiPreviewSection.style.display = 'none';
-          aiIterateSection.style.display = 'none';
+          aiReviseSection.style.display = 'none';
           aiActionButtons.style.display = 'flex';
           aiApproveBtn.style.display = 'none';
           aiRejectBtn.style.display = 'none';
           aiRevertBtn.style.display = 'none';
+          aiPrLink.style.display = 'none';
           break;
-        case 'pr_created':
-          statusHtml = `<p>🔨 <strong>PR Created!</strong></p>
-            <p style="color: #666; font-size: 0.9rem;">Copilot opened <a href="${req.prUrl}" target="_blank">PR #${req.prNumber}</a>. Waiting for preview...</p>`;
+        case 'building':
+          statusHtml = `<p>🔨 <strong>Building Preview...</strong></p>
+            <p style="color: #666; font-size: 0.9rem;">Copilot opened <a href="${req.prUrl}" target="_blank">PR #${req.prNumber}</a>. Preview is being built.</p>`;
           aiPrLink.href = req.prUrl;
           aiPrLink.style.display = 'inline-block';
           aiPreviewSection.style.display = 'none';
-          aiIterateSection.style.display = 'block';
+          aiReviseSection.style.display = 'block';
           aiActionButtons.style.display = 'flex';
           aiApproveBtn.style.display = 'inline-block';
           aiRejectBtn.style.display = 'inline-block';
           aiRevertBtn.style.display = 'none';
           break;
         case 'preview_ready':
-          statusHtml = `<p>👁️ <strong>Preview Ready!</strong></p>
-            <p style="color: #666; font-size: 0.9rem;">Review the changes below, then apply or discard.</p>`;
+          statusHtml = `<p>👁️ <strong>Ready to Review</strong></p>
+            <p style="color: #666; font-size: 0.9rem;">Review the preview below, then apply or request changes.</p>`;
           aiPreviewIframe.src = req.previewUrl;
           aiPreviewLink.href = req.previewUrl;
           aiPrLink.href = req.prUrl;
           aiPrLink.style.display = 'inline-block';
           aiPreviewSection.style.display = 'block';
-          aiIterateSection.style.display = 'block';
+          aiReviseSection.style.display = 'block';
           aiActionButtons.style.display = 'flex';
           aiApproveBtn.style.display = 'inline-block';
           aiRejectBtn.style.display = 'inline-block';
           aiRevertBtn.style.display = 'none';
           break;
-        case 'merged':
-          statusHtml = `<p>✅ <strong>Changes Applied!</strong></p>
-            <p style="color: #666; font-size: 0.9rem;">These changes have been merged to your site.</p>`;
+        case 'applied':
+          statusHtml = `<p>✅ <strong>Applied</strong></p>
+            <p style="color: #666; font-size: 0.9rem;">This change is live on your site.</p>`;
           aiPreviewSection.style.display = 'none';
-          aiIterateSection.style.display = 'none';
+          aiReviseSection.style.display = 'none';
           aiActionButtons.style.display = 'flex';
           aiApproveBtn.style.display = 'none';
           aiRejectBtn.style.display = 'none';
@@ -758,6 +765,28 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
           } else {
             aiPrLink.style.display = 'none';
           }
+          break;
+        case 'replaced':
+          statusHtml = `<p>🔄 <strong>Replaced</strong></p>
+            <p style="color: #666; font-size: 0.9rem;">This request was replaced by a newer version.</p>`;
+          aiPreviewSection.style.display = 'none';
+          aiReviseSection.style.display = 'none';
+          aiActionButtons.style.display = 'flex';
+          aiApproveBtn.style.display = 'none';
+          aiRejectBtn.style.display = 'none';
+          aiRevertBtn.style.display = 'none';
+          aiPrLink.style.display = 'none';
+          break;
+        case 'discarded':
+          statusHtml = `<p>❌ <strong>Discarded</strong></p>
+            <p style="color: #666; font-size: 0.9rem;">This request was discarded.</p>`;
+          aiPreviewSection.style.display = 'none';
+          aiReviseSection.style.display = 'none';
+          aiActionButtons.style.display = 'flex';
+          aiApproveBtn.style.display = 'none';
+          aiRejectBtn.style.display = 'none';
+          aiRevertBtn.style.display = 'none';
+          aiPrLink.style.display = 'none';
           break;
       }
       aiDetailStatus.innerHTML = statusHtml;
@@ -823,7 +852,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         
         if (result.success) {
           aiActionResult.innerHTML = '<span style="color: green;">✓ Changes applied! Site will update shortly.</span>';
-          currentAiRequest.status = 'merged';
+          currentAiRequest.status = 'applied';
           showRequestDetail(currentAiRequest);
           loadAiRequestsList();
         } else {
@@ -868,40 +897,50 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       }
     });
 
-    // Iterate (request additional changes)
-    aiIterateSubmit?.addEventListener('click', async () => {
-      if (!currentAiRequest?.issueNumber) return;
+    // Request Changes (revise)
+    aiReviseSubmit?.addEventListener('click', async () => {
+      if (!currentAiRequest?.issueNumber || !currentAiRequest?.prNumber) return;
       
-      const feedback = aiIterateFeedback.value.trim();
+      const feedback = aiReviseFeedback.value.trim();
       if (!feedback) {
-        aiIterateResult.innerHTML = '<span style="color: red;">Please enter your feedback</span>';
+        aiReviseResult.innerHTML = '<span style="color: red;">Please describe what to change</span>';
         return;
       }
 
-      aiIterateSubmit.disabled = true;
-      aiIterateResult.innerHTML = '⏳ Sending...';
+      aiReviseSubmit.disabled = true;
+      aiReviseResult.innerHTML = '⏳ Creating new version...';
 
       try {
-        const response = await fetch(`${workerUrl}/api/ai-mod/iterate`, {
+        const response = await fetch(`${workerUrl}/api/ai-mod/revise`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             issueNumber: currentAiRequest.issueNumber,
+            prNumber: currentAiRequest.prNumber,
+            originalDescription: currentAiRequest.description,
             feedback,
           }),
         });
         const result = await response.json();
         
         if (result.success) {
-          aiIterateResult.innerHTML = '<span style="color: green;">✓ Sent! Copilot will update the PR.</span>';
-          aiIterateFeedback.value = '';
+          const copilotNote = result.data.copilotAssigned 
+            ? '' 
+            : ' (assign @copilot manually)';
+          aiReviseResult.innerHTML = `<span style="color: green;">✓ New version requested! <a href="${result.data.issueUrl}" target="_blank">View</a>${copilotNote}</span>`;
+          aiReviseFeedback.value = '';
+          // Refresh list after a moment
+          setTimeout(() => {
+            loadAiRequestsList();
+            aiDetailPanel.style.display = 'none';
+          }, 1500);
         } else {
-          aiIterateResult.innerHTML = `<span style="color: red;">✗ ${result.error}</span>`;
+          aiReviseResult.innerHTML = `<span style="color: red;">✗ ${result.error}</span>`;
         }
       } catch (err) {
-        aiIterateResult.innerHTML = `<span style="color: red;">✗ Network error</span>`;
+        aiReviseResult.innerHTML = `<span style="color: red;">✗ Network error</span>`;
       } finally {
-        aiIterateSubmit.disabled = false;
+        aiReviseSubmit.disabled = false;
       }
     });
 

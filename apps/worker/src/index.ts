@@ -681,9 +681,55 @@ async function handleAiModStatus(
 interface GitHubIssueListItem {
   number: number;
   title: string;
+  body: string | null;
   state: string;
   created_at: string;
   html_url: string;
+}
+
+interface GitHubDeployment {
+  id: number;
+  environment: string;
+  ref: string;
+  sha: string;
+}
+
+interface GitHubDeploymentStatus {
+  state: string;
+  environment_url: string | null;
+}
+
+async function getPreviewUrlForBranch(
+  env: Env,
+  branchRef: string
+): Promise<string | null> {
+  try {
+    // Get deployments for this branch
+    const deployments = await githubApi<GitHubDeployment[]>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments?ref=${encodeURIComponent(branchRef)}&per_page=5`
+    );
+
+    if (deployments.length === 0) return null;
+
+    // Check the most recent deployment's status
+    for (const deployment of deployments) {
+      const statuses = await githubApi<GitHubDeploymentStatus[]>(
+        env,
+        `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments/${deployment.id}/statuses`
+      );
+
+      // Find a successful deployment with an environment URL
+      const successStatus = statuses.find(s => s.state === 'success' && s.environment_url);
+      if (successStatus?.environment_url) {
+        return successStatus.environment_url;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 async function handleAiModList(
@@ -726,21 +772,31 @@ async function handleAiModList(
         let previewUrl: string | null = null;
         let status = 'pending';
 
-        if (linkedPr) {
-          status = linkedPr.merged ? 'merged' : 'pr_created';
+        // Check if this issue was replaced by a revision
+        const wasReplaced = issue.body?.includes('This replaces issue #') || false;
+        
+        // Check if PR was closed without merging (discarded)
+        const wasDiscarded = linkedPr && linkedPr.state === 'closed' && !linkedPr.merged;
 
-          // Cloudflare Pages preview URLs follow a pattern based on branch name
-          // Format: https://<branch-slug>.<project>.pages.dev
-          // Branch names get sanitized: slashes become dashes, lowercase
-          if (!linkedPr.merged) {
-            const branchSlug = linkedPr.head.ref.replace(/\//g, '-').toLowerCase();
-            previewUrl = `https://${branchSlug}.webcomic-sandbox.pages.dev`;
-            status = 'preview_ready';
+        if (wasReplaced && issue.state === 'closed') {
+          status = 'replaced';
+        } else if (wasDiscarded) {
+          status = 'discarded';
+        } else if (linkedPr) {
+          if (linkedPr.merged) {
+            status = 'applied';
+          } else if (linkedPr.state === 'open') {
+            // Try to get preview URL from GitHub Deployments API
+            previewUrl = await getPreviewUrlForBranch(env, linkedPr.head.ref);
+            status = previewUrl ? 'preview_ready' : 'building';
           }
         }
 
-        // Extract description from title (remove [AI] prefix)
-        const description = issue.title.replace(/^\[AI\]\s*/, '');
+        // Extract description from title (remove [AI] prefix and "Revision:" or "Revert:" prefixes)
+        let description = issue.title.replace(/^\[AI\]\s*/, '');
+        const isRevision = description.startsWith('Revision:');
+        const isRevert = description.startsWith('Revert:');
+        description = description.replace(/^(Revision|Revert):\s*/, '');
 
         return {
           issueNumber: issue.number,
@@ -753,6 +809,8 @@ async function handleAiModList(
           prState: linkedPr ? (linkedPr.merged ? 'merged' : linkedPr.state) : null,
           previewUrl,
           status,
+          isRevision,
+          isRevert,
         };
       })
     );
@@ -868,17 +926,22 @@ async function handleAiModReject(
   }
 }
 
-async function handleAiModIterate(
+async function handleAiModRevise(
   request: Request,
   env: Env,
   cors: HeadersInit
 ): Promise<Response> {
   try {
-    const body = await request.json() as { issueNumber: number; feedback: string };
+    const body = await request.json() as { 
+      issueNumber: number; 
+      prNumber: number;
+      originalDescription: string;
+      feedback: string;
+    };
 
-    if (!body.issueNumber) {
+    if (!body.issueNumber || !body.prNumber) {
       return jsonResponse(
-        { success: false, error: 'Issue number is required' },
+        { success: false, error: 'Issue number and PR number are required' },
         400,
         cors
       );
@@ -892,27 +955,145 @@ async function handleAiModIterate(
       );
     }
 
-    // Add a comment to the issue mentioning @copilot
-    const commentBody = `@copilot Please also make these changes:\n\n${body.feedback}`;
-
+    // 1. Close the old PR
     await githubApi<unknown>(
       env,
-      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${body.issueNumber}/comments`,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls/${body.prNumber}`,
       {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: commentBody }),
+        body: JSON.stringify({ state: 'closed' }),
       }
     );
 
+    // 2. Close the old issue with a note
+    await githubApi<unknown>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${body.issueNumber}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: 'closed' }),
+      }
+    );
+
+    // 3. Create a new issue with combined context
+    const issueBody = `## Site Modification Request
+
+${body.originalDescription}
+
+### Additional Changes Requested:
+${body.feedback}
+
+---
+*This replaces issue #${body.issueNumber}. Copilot will work on this and create a PR.*
+`;
+
+    const issue = await githubApi<GitHubIssue>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `[AI] Revision: ${body.originalDescription.slice(0, 50)}${body.originalDescription.length > 50 ? '...' : ''}`,
+          body: issueBody,
+          labels: ['ai-modification'],
+        }),
+      }
+    );
+
+    // 4. Assign Copilot using GraphQL
+    let copilotAssigned = false;
+    try {
+      interface SuggestedActorsResponse {
+        repository: {
+          suggestedActors: {
+            nodes: Array<{ login: string; id: string; __typename: string }>;
+          };
+        };
+      }
+      
+      const actorsResult = await githubGraphQL<SuggestedActorsResponse>(
+        env,
+        `query($owner: String!, $name: String!) {
+          repository(owner: $owner, name: $name) {
+            suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 20) {
+              nodes {
+                login
+                __typename
+                ... on Bot {
+                  id
+                }
+                ... on User {
+                  id
+                }
+              }
+            }
+          }
+        }`,
+        { owner: GITHUB_OWNER, name: GITHUB_REPO }
+      );
+
+      const copilotBot = actorsResult.repository.suggestedActors.nodes.find(
+        (node) => node.login === 'copilot-swe-agent' && node.__typename === 'Bot'
+      );
+
+      if (copilotBot) {
+        interface IssueIdResponse {
+          repository: { issue: { id: string } };
+        }
+        
+        const issueResult = await githubGraphQL<IssueIdResponse>(
+          env,
+          `query($owner: String!, $name: String!, $number: Int!) {
+            repository(owner: $owner, name: $name) {
+              issue(number: $number) {
+                id
+              }
+            }
+          }`,
+          { owner: GITHUB_OWNER, name: GITHUB_REPO, number: issue.number }
+        );
+
+        await githubGraphQL<unknown>(
+          env,
+          `mutation($issueId: ID!, $assigneeIds: [ID!]!) {
+            addAssigneesToAssignable(input: {
+              assignableId: $issueId,
+              assigneeIds: $assigneeIds
+            }) {
+              assignable {
+                ... on Issue {
+                  id
+                }
+              }
+            }
+          }`,
+          { 
+            issueId: issueResult.repository.issue.id, 
+            assigneeIds: [copilotBot.id] 
+          }
+        );
+        copilotAssigned = true;
+      }
+    } catch {
+      // Copilot assignment failed - continue anyway
+    }
+
     return jsonResponse({
       success: true,
-      data: { issueNumber: body.issueNumber, commented: true },
-    }, 200, cors);
+      data: {
+        issueNumber: issue.number,
+        issueUrl: issue.html_url,
+        copilotAssigned,
+        replacedIssue: body.issueNumber,
+      },
+    }, 201, cors);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse(
-      { success: false, error: 'Failed to add feedback', details: message },
+      { success: false, error: 'Failed to create revision', details: message },
       500,
       cors
     );
@@ -1108,8 +1289,8 @@ export default {
       return handleAiModReject(request, env, cors);
     }
 
-    if (url.pathname === '/api/ai-mod/iterate' && request.method === 'POST') {
-      return handleAiModIterate(request, env, cors);
+    if (url.pathname === '/api/ai-mod/revise' && request.method === 'POST') {
+      return handleAiModRevise(request, env, cors);
     }
 
     if (url.pathname === '/api/ai-mod/revert' && request.method === 'POST') {
