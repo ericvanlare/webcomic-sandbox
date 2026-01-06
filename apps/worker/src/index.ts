@@ -703,33 +703,35 @@ async function getPreviewUrlForBranch(
   env: Env,
   branchRef: string
 ): Promise<string | null> {
+  // First try GitHub Deployments API for accurate URL
   try {
-    // Get deployments for this branch
     const deployments = await githubApi<GitHubDeployment[]>(
       env,
       `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments?ref=${encodeURIComponent(branchRef)}&per_page=5`
     );
 
-    if (deployments.length === 0) return null;
-
-    // Check the most recent deployment's status
     for (const deployment of deployments) {
       const statuses = await githubApi<GitHubDeploymentStatus[]>(
         env,
         `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments/${deployment.id}/statuses`
       );
 
-      // Find a successful deployment with an environment URL
       const successStatus = statuses.find(s => s.state === 'success' && s.environment_url);
       if (successStatus?.environment_url) {
         return successStatus.environment_url;
       }
     }
-
-    return null;
   } catch {
-    return null;
+    // Fall through to constructed URL
   }
+
+  // Fallback: construct URL from branch name (works for most cases)
+  // Cloudflare truncates long branch names, so limit to ~28 chars
+  let branchSlug = branchRef.replace(/\//g, '-').toLowerCase();
+  if (branchSlug.length > 28) {
+    branchSlug = branchSlug.substring(0, 28);
+  }
+  return `https://${branchSlug}.webcomic-sandbox.pages.dev`;
 }
 
 async function handleAiModList(
@@ -786,9 +788,8 @@ async function handleAiModList(
           if (linkedPr.merged) {
             status = 'applied';
           } else if (linkedPr.state === 'open') {
-            // Try to get preview URL from GitHub Deployments API
             previewUrl = await getPreviewUrlForBranch(env, linkedPr.head.ref);
-            status = previewUrl ? 'preview_ready' : 'building';
+            status = 'preview_ready';
           }
         }
 
