@@ -725,7 +725,8 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
           break;
         case 'building':
           statusHtml = `<p>🔨 <strong>Building Preview...</strong></p>
-            <p style="color: #666; font-size: 0.9rem;">Copilot opened <a href="${req.prUrl}" target="_blank">PR #${req.prNumber}</a>. Preview is being built.</p>`;
+            <p style="color: #666; font-size: 0.9rem;">Copilot opened <a href="${req.prUrl}" target="_blank">PR #${req.prNumber}</a>. Preview is being built.</p>
+            ${req.previewUrl ? `<p style="color: #666; font-size: 0.9rem;">Preview URL (may not be ready yet): <a href="${req.previewUrl}" target="_blank">${req.previewUrl}</a></p>` : ''}`;
           aiPrLink.href = req.prUrl;
           aiPrLink.style.display = 'inline-block';
           aiPreviewSection.style.display = 'none';

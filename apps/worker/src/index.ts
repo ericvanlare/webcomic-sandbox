@@ -700,11 +700,16 @@ interface GitHubDeploymentStatus {
   environment_url: string | null;
 }
 
+interface PreviewUrlResult {
+  url: string;
+  confirmed: boolean;
+}
+
 async function getPreviewUrlForBranch(
   env: Env,
   branchRef: string
-): Promise<string | null> {
-  // First try GitHub Deployments API for accurate URL
+): Promise<PreviewUrlResult> {
+  // First try GitHub Deployments API for confirmed URL
   try {
     const deployments = await githubApi<GitHubDeployment[]>(
       env,
@@ -719,20 +724,19 @@ async function getPreviewUrlForBranch(
 
       const successStatus = statuses.find(s => s.state === 'success' && s.environment_url);
       if (successStatus?.environment_url) {
-        return successStatus.environment_url;
+        return { url: successStatus.environment_url, confirmed: true };
       }
     }
   } catch {
     // Fall through to constructed URL
   }
 
-  // Fallback: construct URL from branch name (works for most cases)
-  // Cloudflare truncates long branch names, so limit to ~28 chars
+  // Fallback: construct URL from branch name (may still be building)
   let branchSlug = branchRef.replace(/\//g, '-').toLowerCase();
   if (branchSlug.length > 28) {
     branchSlug = branchSlug.substring(0, 28);
   }
-  return `https://${branchSlug}.webcomic-sandbox.pages.dev`;
+  return { url: `https://${branchSlug}.webcomic-sandbox.pages.dev`, confirmed: false };
 }
 
 async function handleAiModList(
@@ -790,8 +794,9 @@ async function handleAiModList(
           if (isMerged) {
             status = 'applied';
           } else if (linkedPr.state === 'open') {
-            previewUrl = await getPreviewUrlForBranch(env, linkedPr.head.ref);
-            status = 'preview_ready';
+            const preview = await getPreviewUrlForBranch(env, linkedPr.head.ref);
+            previewUrl = preview.url;
+            status = preview.confirmed ? 'preview_ready' : 'building';
           }
         }
 
