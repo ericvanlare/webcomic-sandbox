@@ -856,7 +856,8 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
           showRequestDetail(currentAiRequest);
           loadAiRequestsList();
         } else {
-          aiActionResult.innerHTML = `<span style="color: red;">✗ Error: ${result.error}</span>`;
+          const details = result.details ? ` (${result.details})` : '';
+          aiActionResult.innerHTML = `<span style="color: red;">✗ Error: ${result.error}${details}</span>`;
         }
       } catch (err) {
         aiActionResult.innerHTML = `<span style="color: red;">✗ Network error: ${err}</span>`;
