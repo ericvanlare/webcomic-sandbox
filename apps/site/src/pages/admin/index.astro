@@ -7,29 +7,20 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
 
 <BaseLayout title="Admin Panel">
   <h1>Admin Panel</h1>
-  <p style="color: #666; margin-bottom: 2rem;">
+  <p class="admin-description">
     Manage your webcomic. This page is protected by Cloudflare Access.
   </p>
 
-  <div style="display: flex; flex-direction: column; gap: 1rem; max-width: 300px;">
-    <button
-      id="btn-upload"
-      style="padding: 1rem; font-size: 1rem; cursor: pointer; background: #0066cc; color: white; border: none; border-radius: 4px;"
-    >
+  <div class="admin-buttons">
+    <button id="btn-upload" class="btn btn-primary">
       📤 Upload New Comic
     </button>
 
-    <button
-      id="btn-modify"
-      style="padding: 1rem; font-size: 1rem; cursor: pointer; background: #4a9eff; color: white; border: none; border-radius: 4px;"
-    >
+    <button id="btn-modify" class="btn btn-info">
       ✏️ Modify Comic
     </button>
 
-    <button
-      id="btn-ai"
-      style="padding: 1rem; font-size: 1rem; cursor: pointer; background: #9b59b6; color: white; border: none; border-radius: 4px;"
-    >
+    <button id="btn-ai" class="btn btn-purple">
       🤖 Modify Site with AI
     </button>
 
@@ -37,26 +28,23 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       href="https://dash.cloudflare.com/?to=/:account/web-analytics/sites/09b9c80391304fa2b9a307bae1aca765"
       target="_blank"
       rel="noopener noreferrer"
-      style="display: block; padding: 1rem; font-size: 1rem; cursor: pointer; background: #f5a623; color: white; border: none; border-radius: 4px; text-decoration: none; text-align: center;"
+      class="btn btn-warning"
     >
       📊 View Analytics
     </a>
   </div>
 
   <!-- Upload New Comic Form -->
-  <div
-    id="upload-form"
-    style="display: none; margin-top: 2rem; padding: 1rem; background: #f5f5f5; border-radius: 4px;"
-  >
+  <div id="upload-form" class="form-panel">
     <h2>Upload New Comic</h2>
-    <form id="comic-form" style="display: flex; flex-direction: column; gap: 1rem;">
+    <form id="comic-form" class="form-group">
       <label>
         Title:
-        <input type="text" name="title" required style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="title" required />
       </label>
       <label>
         Slug:
-        <input type="text" name="slug" required style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="slug" required />
       </label>
       <label>
         Image:
@@ -64,13 +52,13 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       </label>
       <label>
         Alt Text:
-        <input type="text" name="altText" style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="altText" />
       </label>
       <label>
         Transcript:
-        <textarea name="transcript" rows="4" style="width: 100%; padding: 0.5rem;"></textarea>
+        <textarea name="transcript" rows="4"></textarea>
       </label>
-      <button type="submit" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+      <button type="submit" class="btn btn-success">
         Submit
       </button>
     </form>
@@ -78,10 +66,7 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
   </div>
 
   <!-- Modify Comic UI -->
-  <div
-    id="modify-form"
-    style="display: none; margin-top: 2rem; padding: 1rem; background: #e8f4fc; border-radius: 4px;"
-  >
+  <div id="modify-form" class="form-panel">
     <h2>Modify Comic</h2>
     
     <div style="margin-bottom: 1rem;">
@@ -94,16 +79,16 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     <div id="comic-selector" style="margin-bottom: 1rem;">
       <label>
         Select Comic:
-        <select id="comic-select" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+        <select id="comic-select">
           <option value="">Loading comics...</option>
         </select>
       </label>
     </div>
 
-    <form id="modify-comic-form" style="display: none; flex-direction: column; gap: 1rem;">
+    <form id="modify-comic-form" class="form-group" style="display: none;">
       <input type="hidden" name="comicId" id="modify-comic-id" />
       
-      <div style="background: #f0f0f0; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem;">
+      <div style="background: var(--bg-secondary); padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem; border: 1px solid var(--border-color);">
         <img id="modify-preview" src="" alt="Current comic" style="max-width: 200px; max-height: 150px; display: none;" />
         <div id="hidden-badge" style="display: none; margin-top: 0.5rem; padding: 0.25rem 0.5rem; background: #ffc107; color: #000; border-radius: 4px; font-size: 0.8rem; width: fit-content;">
           🙈 Hidden
@@ -112,11 +97,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       
       <label>
         Title:
-        <input type="text" name="title" id="modify-title" style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="title" id="modify-title" />
       </label>
       <label>
         Slug:
-        <input type="text" name="slug" id="modify-slug" style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="slug" id="modify-slug" />
       </label>
       <label>
         Replace Image (optional):
@@ -124,21 +109,21 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       </label>
       <label>
         Alt Text:
-        <input type="text" name="altText" id="modify-alt" style="width: 100%; padding: 0.5rem;" />
+        <input type="text" name="altText" id="modify-alt" />
       </label>
       <label>
         Transcript:
-        <textarea name="transcript" id="modify-transcript" rows="4" style="width: 100%; padding: 0.5rem;"></textarea>
+        <textarea name="transcript" id="modify-transcript" rows="4"></textarea>
       </label>
       
       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="submit" style="padding: 0.75rem 1rem; background: #4a9eff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button type="submit" class="btn btn-info">
           💾 Save Changes
         </button>
-        <button type="button" id="btn-toggle-hide" style="padding: 0.75rem 1rem; background: #ffc107; color: #000; border: none; border-radius: 4px; cursor: pointer;">
+        <button type="button" id="btn-toggle-hide" class="btn btn-warning">
           🙈 Hide
         </button>
-        <button type="button" id="btn-delete" style="padding: 0.75rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button type="button" id="btn-delete" class="btn btn-danger">
           🗑️ Delete
         </button>
       </div>
@@ -147,15 +132,15 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
   </div>
 
   <!-- Delete Confirmation Modal -->
-  <div id="delete-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 2rem; border-radius: 8px; max-width: 400px; margin: 1rem;">
-      <h3 style="margin-bottom: 1rem; color: #dc3545;">⚠️ Delete Comic Permanently?</h3>
-      <p style="margin-bottom: 1rem;">This action cannot be undone. The comic "<span id="delete-comic-title"></span>" will be permanently removed from Sanity.</p>
-      <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-        <button id="delete-cancel" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+  <div id="delete-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>⚠️ Delete Comic Permanently?</h3>
+      <p>This action cannot be undone. The comic "<span id="delete-comic-title"></span>" will be permanently removed from Sanity.</p>
+      <div class="modal-actions">
+        <button id="delete-cancel" class="btn btn-secondary">
           Cancel
         </button>
-        <button id="delete-confirm" style="padding: 0.5rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        <button id="delete-confirm" class="btn btn-danger">
           Delete Forever
         </button>
       </div>
@@ -429,12 +414,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       if (comic.hidden) {
         hiddenBadge.style.display = 'block';
         toggleHideBtn.textContent = '👁️ Unhide';
-        toggleHideBtn.style.background = '#28a745';
+        toggleHideBtn.className = 'btn btn-success';
       } else {
         hiddenBadge.style.display = 'none';
         toggleHideBtn.textContent = '🙈 Hide';
-        toggleHideBtn.style.background = '#ffc107';
-        toggleHideBtn.style.color = '#000';
+        toggleHideBtn.className = 'btn btn-warning';
       }
       
       modifyComicForm.style.display = 'flex';
@@ -979,4 +963,148 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       }
     });
   </script>
+
+  <style>
+    .admin-description {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+    }
+
+    .admin-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-width: 300px;
+    }
+
+    .btn {
+      padding: 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      font-weight: 500;
+      transition: opacity 0.2s ease;
+      text-decoration: none;
+      text-align: center;
+      display: block;
+    }
+
+    .btn:hover {
+      opacity: 0.85;
+    }
+
+    .btn-primary {
+      background: #0066cc;
+      color: white;
+    }
+
+    .btn-info {
+      background: #4a9eff;
+      color: white;
+    }
+
+    .btn-purple {
+      background: #9b59b6;
+      color: white;
+    }
+
+    .btn-warning {
+      background: #f5a623;
+      color: white;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .form-panel {
+      display: none;
+      margin-top: 2rem;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+    }
+
+    .form-panel h2 {
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .form-group label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--bg-primary);
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 400px;
+      margin: 1rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .modal-content h3 {
+      margin-bottom: 1rem;
+      color: #dc3545;
+    }
+
+    .modal-content p {
+      margin-bottom: 1rem;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+    }
+  </style>
 </BaseLayout>
