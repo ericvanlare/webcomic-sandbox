@@ -706,37 +706,26 @@ interface PreviewUrlResult {
 }
 
 async function getPreviewUrlForBranch(
-  env: Env,
   branchRef: string
 ): Promise<PreviewUrlResult> {
-  // First try GitHub Deployments API for confirmed URL
-  try {
-    const deployments = await githubApi<GitHubDeployment[]>(
-      env,
-      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments?ref=${encodeURIComponent(branchRef)}&per_page=5`
-    );
-
-    for (const deployment of deployments) {
-      const statuses = await githubApi<GitHubDeploymentStatus[]>(
-        env,
-        `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/deployments/${deployment.id}/statuses`
-      );
-
-      const successStatus = statuses.find(s => s.state === 'success' && s.environment_url);
-      if (successStatus?.environment_url) {
-        return { url: successStatus.environment_url, confirmed: true };
-      }
-    }
-  } catch {
-    // Fall through to constructed URL
-  }
-
-  // Fallback: construct URL from branch name (may still be building)
+  // Construct URL from branch name
+  // Cloudflare truncates long branch names to ~28 chars
   let branchSlug = branchRef.replace(/\//g, '-').toLowerCase();
   if (branchSlug.length > 28) {
     branchSlug = branchSlug.substring(0, 28);
   }
-  return { url: `https://${branchSlug}.webcomic-sandbox.pages.dev`, confirmed: false };
+  const url = `https://${branchSlug}.webcomic-sandbox.pages.dev`;
+
+  // Check if the preview is actually live by making a HEAD request
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    // Cloudflare Pages returns 200 when ready, or various errors when not
+    // A 530 or 522 typically means not deployed yet
+    const confirmed = response.ok;
+    return { url, confirmed };
+  } catch {
+    return { url, confirmed: false };
+  }
 }
 
 async function handleAiModList(
@@ -794,7 +783,7 @@ async function handleAiModList(
           if (isMerged) {
             status = 'applied';
           } else if (linkedPr.state === 'open') {
-            const preview = await getPreviewUrlForBranch(env, linkedPr.head.ref);
+            const preview = await getPreviewUrlForBranch(linkedPr.head.ref);
             previewUrl = preview.url;
             status = preview.confirmed ? 'preview_ready' : 'building';
           }
