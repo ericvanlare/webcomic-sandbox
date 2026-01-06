@@ -30,11 +30,9 @@ const { prev, next } = await getAdjacentComics(comic.publishedAt);
     />
     {
       comic.transcript && (
-        <details style="margin-top: 1rem;">
+        <details>
           <summary>Transcript</summary>
-          <pre style="white-space: pre-wrap; background: #f5f5f5; padding: 1rem; margin-top: 0.5rem; border-radius: 4px;">
-            {comic.transcript}
-          </pre>
+          <pre>{comic.transcript}</pre>
         </details>
       )
     }
@@ -76,7 +74,7 @@ const { prev, next } = await getAdjacentComics(comic.publishedAt);
     align-items: center;
     margin-top: 1.5rem;
     padding: 1rem 0;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-light);
   }
   
   .nav-prev, .nav-next {
@@ -98,17 +96,17 @@ const { prev, next } = await getAdjacentComics(comic.publishedAt);
   }
   
   .nav-separator {
-    color: #ccc;
+    color: var(--text-muted);
   }
   
   .nav-disabled {
-    color: #ccc;
+    color: var(--text-muted);
     cursor: default;
   }
   
   .comic-nav a {
     text-decoration: none;
-    color: #0066cc;
+    color: var(--link-color);
   }
   
   .comic-nav a:hover {
