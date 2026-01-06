@@ -387,6 +387,7 @@ interface GitHubPullRequest {
   head: { ref: string };
   mergeable: boolean | null;
   merged: boolean;
+  merged_at: string | null;
   body: string | null;
 }
 
@@ -777,15 +778,16 @@ async function handleAiModList(
         // Check if this issue was replaced by a revision
         const wasReplaced = issue.body?.includes('This replaces issue #') || false;
         
-        // Check if PR was closed without merging (discarded)
-        const wasDiscarded = linkedPr && linkedPr.state === 'closed' && !linkedPr.merged;
+        // Use merged_at to check if PR was merged (merged field not in list response)
+        const isMerged = linkedPr && linkedPr.merged_at !== null;
+        const wasDiscarded = linkedPr && linkedPr.state === 'closed' && !isMerged;
 
         if (wasReplaced && issue.state === 'closed') {
           status = 'replaced';
         } else if (wasDiscarded) {
           status = 'discarded';
         } else if (linkedPr) {
-          if (linkedPr.merged) {
+          if (isMerged) {
             status = 'applied';
           } else if (linkedPr.state === 'open') {
             previewUrl = await getPreviewUrlForBranch(env, linkedPr.head.ref);
@@ -807,7 +809,7 @@ async function handleAiModList(
           createdAt: issue.created_at,
           prNumber: linkedPr?.number ?? null,
           prUrl: linkedPr?.html_url ?? null,
-          prState: linkedPr ? (linkedPr.merged ? 'merged' : linkedPr.state) : null,
+          prState: linkedPr ? (isMerged ? 'merged' : linkedPr.state) : null,
           previewUrl,
           status,
           isRevision,
