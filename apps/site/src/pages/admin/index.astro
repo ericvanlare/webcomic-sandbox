@@ -230,6 +230,27 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         </a>
       </div>
       
+      <!-- Iterate Section (Request Changes) -->
+      <div id="ai-iterate-section" style="display: none; margin-top: 1rem; padding: 1rem; background: #f8f4fc; border-radius: 4px; border: 1px solid #9b59b6;">
+        <h4 style="margin: 0 0 0.5rem 0;">💬 Request Additional Changes</h4>
+        <p style="color: #666; font-size: 0.85rem; margin-bottom: 0.5rem;">
+          Not quite right? Tell Copilot what else to change. It will update the same PR.
+        </p>
+        <textarea 
+          id="ai-iterate-feedback" 
+          rows="2" 
+          placeholder="e.g., Also make the button bigger and change the color to blue..."
+          style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; resize: vertical;"
+        ></textarea>
+        <button 
+          id="ai-iterate-submit" 
+          style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #9b59b6; color: white; border: none; border-radius: 4px; cursor: pointer;"
+        >
+          Send to Copilot
+        </button>
+        <span id="ai-iterate-result" style="margin-left: 0.5rem;"></span>
+      </div>
+      
       <!-- Action Buttons -->
       <div id="ai-action-buttons" style="display: none; margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <button id="ai-approve" style="padding: 0.75rem 1rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -237,6 +258,9 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         </button>
         <button id="ai-reject" style="padding: 0.75rem 1rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
           ❌ Discard
+        </button>
+        <button id="ai-revert" style="padding: 0.75rem 1rem; background: #f5a623; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          ↩️ Undo This Change
         </button>
         <a id="ai-pr-link" href="" target="_blank" style="padding: 0.75rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; text-decoration: none;">
           View PR on GitHub
@@ -557,9 +581,14 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
     const aiActionButtons = document.getElementById('ai-action-buttons');
     const aiApproveBtn = document.getElementById('ai-approve');
     const aiRejectBtn = document.getElementById('ai-reject');
+    const aiRevertBtn = document.getElementById('ai-revert');
     const aiPrLink = document.getElementById('ai-pr-link');
     const aiIssueLink = document.getElementById('ai-issue-link');
     const aiActionResult = document.getElementById('ai-action-result');
+    const aiIterateSection = document.getElementById('ai-iterate-section');
+    const aiIterateFeedback = document.getElementById('ai-iterate-feedback');
+    const aiIterateSubmit = document.getElementById('ai-iterate-submit');
+    const aiIterateResult = document.getElementById('ai-iterate-result');
 
     let currentAiRequest = null;
     let aiRequestsCache = [];
@@ -672,6 +701,8 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
       aiDetailTitle.textContent = req.description;
       aiIssueLink.href = req.issueUrl;
       aiActionResult.innerHTML = '';
+      aiIterateFeedback.value = '';
+      aiIterateResult.innerHTML = '';
 
       // Set status
       let statusHtml = '';
@@ -680,9 +711,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
           statusHtml = `<p>⏳ <strong>Waiting for Copilot...</strong></p>
             <p style="color: #666; font-size: 0.9rem;">Copilot should pick up issue #${req.issueNumber} shortly.</p>`;
           aiPreviewSection.style.display = 'none';
+          aiIterateSection.style.display = 'none';
           aiActionButtons.style.display = 'flex';
           aiApproveBtn.style.display = 'none';
           aiRejectBtn.style.display = 'none';
+          aiRevertBtn.style.display = 'none';
           break;
         case 'pr_created':
           statusHtml = `<p>🔨 <strong>PR Created!</strong></p>
@@ -690,9 +723,11 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
           aiPrLink.href = req.prUrl;
           aiPrLink.style.display = 'inline-block';
           aiPreviewSection.style.display = 'none';
+          aiIterateSection.style.display = 'block';
           aiActionButtons.style.display = 'flex';
           aiApproveBtn.style.display = 'inline-block';
           aiRejectBtn.style.display = 'inline-block';
+          aiRevertBtn.style.display = 'none';
           break;
         case 'preview_ready':
           statusHtml = `<p>👁️ <strong>Preview Ready!</strong></p>
@@ -702,17 +737,21 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
           aiPrLink.href = req.prUrl;
           aiPrLink.style.display = 'inline-block';
           aiPreviewSection.style.display = 'block';
+          aiIterateSection.style.display = 'block';
           aiActionButtons.style.display = 'flex';
           aiApproveBtn.style.display = 'inline-block';
           aiRejectBtn.style.display = 'inline-block';
+          aiRevertBtn.style.display = 'none';
           break;
         case 'merged':
           statusHtml = `<p>✅ <strong>Changes Applied!</strong></p>
             <p style="color: #666; font-size: 0.9rem;">These changes have been merged to your site.</p>`;
           aiPreviewSection.style.display = 'none';
+          aiIterateSection.style.display = 'none';
           aiActionButtons.style.display = 'flex';
           aiApproveBtn.style.display = 'none';
           aiRejectBtn.style.display = 'none';
+          aiRevertBtn.style.display = 'inline-block';
           if (req.prUrl) {
             aiPrLink.href = req.prUrl;
             aiPrLink.style.display = 'inline-block';
@@ -826,6 +865,78 @@ const workerUrl = PUBLIC_WORKER_URL || 'http://localhost:8787';
         aiActionResult.innerHTML = `<span style="color: red;">✗ Network error: ${err}</span>`;
       } finally {
         aiRejectBtn.disabled = false;
+      }
+    });
+
+    // Iterate (request additional changes)
+    aiIterateSubmit?.addEventListener('click', async () => {
+      if (!currentAiRequest?.issueNumber) return;
+      
+      const feedback = aiIterateFeedback.value.trim();
+      if (!feedback) {
+        aiIterateResult.innerHTML = '<span style="color: red;">Please enter your feedback</span>';
+        return;
+      }
+
+      aiIterateSubmit.disabled = true;
+      aiIterateResult.innerHTML = '⏳ Sending...';
+
+      try {
+        const response = await fetch(`${workerUrl}/api/ai-mod/iterate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            issueNumber: currentAiRequest.issueNumber,
+            feedback,
+          }),
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          aiIterateResult.innerHTML = '<span style="color: green;">✓ Sent! Copilot will update the PR.</span>';
+          aiIterateFeedback.value = '';
+        } else {
+          aiIterateResult.innerHTML = `<span style="color: red;">✗ ${result.error}</span>`;
+        }
+      } catch (err) {
+        aiIterateResult.innerHTML = `<span style="color: red;">✗ Network error</span>`;
+      } finally {
+        aiIterateSubmit.disabled = false;
+      }
+    });
+
+    // Revert (undo merged changes)
+    aiRevertBtn?.addEventListener('click', async () => {
+      if (!currentAiRequest?.prNumber) return;
+      
+      aiRevertBtn.disabled = true;
+      aiActionResult.innerHTML = '⏳ Creating revert request...';
+
+      try {
+        const response = await fetch(`${workerUrl}/api/ai-mod/revert`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            prNumber: currentAiRequest.prNumber,
+            description: currentAiRequest.description,
+          }),
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          const copilotNote = result.data.copilotAssigned 
+            ? '' 
+            : ' (assign @copilot manually)';
+          aiActionResult.innerHTML = `<span style="color: green;">✓ Revert request created! <a href="${result.data.issueUrl}" target="_blank">Issue #${result.data.issueNumber}</a>${copilotNote}</span>`;
+          // Refresh list to show the new revert request
+          setTimeout(loadAiRequestsList, 1000);
+        } else {
+          aiActionResult.innerHTML = `<span style="color: red;">✗ Error: ${result.error}</span>`;
+        }
+      } catch (err) {
+        aiActionResult.innerHTML = `<span style="color: red;">✗ Network error: ${err}</span>`;
+      } finally {
+        aiRevertBtn.disabled = false;
       }
     });
   </script>

@@ -868,6 +868,197 @@ async function handleAiModReject(
   }
 }
 
+async function handleAiModIterate(
+  request: Request,
+  env: Env,
+  cors: HeadersInit
+): Promise<Response> {
+  try {
+    const body = await request.json() as { issueNumber: number; feedback: string };
+
+    if (!body.issueNumber) {
+      return jsonResponse(
+        { success: false, error: 'Issue number is required' },
+        400,
+        cors
+      );
+    }
+
+    if (!body.feedback || body.feedback.trim().length === 0) {
+      return jsonResponse(
+        { success: false, error: 'Feedback is required' },
+        400,
+        cors
+      );
+    }
+
+    // Add a comment to the issue mentioning @copilot
+    const commentBody = `@copilot Please also make these changes:\n\n${body.feedback}`;
+
+    await githubApi<unknown>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${body.issueNumber}/comments`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: commentBody }),
+      }
+    );
+
+    return jsonResponse({
+      success: true,
+      data: { issueNumber: body.issueNumber, commented: true },
+    }, 200, cors);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return jsonResponse(
+      { success: false, error: 'Failed to add feedback', details: message },
+      500,
+      cors
+    );
+  }
+}
+
+async function handleAiModRevert(
+  request: Request,
+  env: Env,
+  cors: HeadersInit
+): Promise<Response> {
+  try {
+    const body = await request.json() as { prNumber: number; description: string };
+
+    if (!body.prNumber) {
+      return jsonResponse(
+        { success: false, error: 'PR number is required' },
+        400,
+        cors
+      );
+    }
+
+    // Create a new issue asking Copilot to revert the changes
+    const issueBody = `## Site Modification Request
+
+Undo the changes from PR #${body.prNumber}.
+
+Original change: ${body.description || 'No description available'}
+
+Please revert the code changes made in that PR to restore the previous behavior.
+
+---
+*This is a revert request created from the admin panel. Copilot will work on this and create a PR.*
+`;
+
+    // Create the issue
+    const issue = await githubApi<GitHubIssue>(
+      env,
+      `/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `[AI] Revert: ${body.description?.slice(0, 50) || `PR #${body.prNumber}`}`,
+          body: issueBody,
+          labels: ['ai-modification'],
+        }),
+      }
+    );
+
+    // Assign Copilot using GraphQL
+    let copilotAssigned = false;
+    try {
+      interface SuggestedActorsResponse {
+        repository: {
+          suggestedActors: {
+            nodes: Array<{ login: string; id: string; __typename: string }>;
+          };
+        };
+      }
+      
+      const actorsResult = await githubGraphQL<SuggestedActorsResponse>(
+        env,
+        `query($owner: String!, $name: String!) {
+          repository(owner: $owner, name: $name) {
+            suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 20) {
+              nodes {
+                login
+                __typename
+                ... on Bot {
+                  id
+                }
+                ... on User {
+                  id
+                }
+              }
+            }
+          }
+        }`,
+        { owner: GITHUB_OWNER, name: GITHUB_REPO }
+      );
+
+      const copilotBot = actorsResult.repository.suggestedActors.nodes.find(
+        (node) => node.login === 'copilot-swe-agent' && node.__typename === 'Bot'
+      );
+
+      if (copilotBot) {
+        interface IssueIdResponse {
+          repository: { issue: { id: string } };
+        }
+        
+        const issueResult = await githubGraphQL<IssueIdResponse>(
+          env,
+          `query($owner: String!, $name: String!, $number: Int!) {
+            repository(owner: $owner, name: $name) {
+              issue(number: $number) {
+                id
+              }
+            }
+          }`,
+          { owner: GITHUB_OWNER, name: GITHUB_REPO, number: issue.number }
+        );
+
+        await githubGraphQL<unknown>(
+          env,
+          `mutation($issueId: ID!, $assigneeIds: [ID!]!) {
+            addAssigneesToAssignable(input: {
+              assignableId: $issueId,
+              assigneeIds: $assigneeIds
+            }) {
+              assignable {
+                ... on Issue {
+                  id
+                }
+              }
+            }
+          }`,
+          { 
+            issueId: issueResult.repository.issue.id, 
+            assigneeIds: [copilotBot.id] 
+          }
+        );
+        copilotAssigned = true;
+      }
+    } catch {
+      // Copilot assignment failed - continue anyway
+    }
+
+    return jsonResponse({
+      success: true,
+      data: {
+        issueNumber: issue.number,
+        issueUrl: issue.html_url,
+        copilotAssigned,
+      },
+    }, 201, cors);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return jsonResponse(
+      { success: false, error: 'Failed to create revert request', details: message },
+      500,
+      cors
+    );
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -915,6 +1106,14 @@ export default {
 
     if (url.pathname === '/api/ai-mod/reject' && request.method === 'POST') {
       return handleAiModReject(request, env, cors);
+    }
+
+    if (url.pathname === '/api/ai-mod/iterate' && request.method === 'POST') {
+      return handleAiModIterate(request, env, cors);
+    }
+
+    if (url.pathname === '/api/ai-mod/revert' && request.method === 'POST') {
+      return handleAiModRevert(request, env, cors);
     }
 
     // Health check
