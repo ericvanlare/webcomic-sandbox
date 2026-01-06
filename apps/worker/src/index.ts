@@ -846,6 +846,48 @@ async function handleAiModApprove(
       );
     }
 
+    // First, check if PR is a draft and mark it ready for review
+    // Copilot creates PRs as drafts by default
+    try {
+      interface PrIdResponse {
+        repository: { 
+          pullRequest: { 
+            id: string;
+            isDraft: boolean;
+          } 
+        };
+      }
+      
+      const prResult = await githubGraphQL<PrIdResponse>(
+        env,
+        `query($owner: String!, $name: String!, $number: Int!) {
+          repository(owner: $owner, name: $name) {
+            pullRequest(number: $number) {
+              id
+              isDraft
+            }
+          }
+        }`,
+        { owner: GITHUB_OWNER, name: GITHUB_REPO, number: body.prNumber }
+      );
+
+      if (prResult.repository.pullRequest.isDraft) {
+        await githubGraphQL<unknown>(
+          env,
+          `mutation($pullRequestId: ID!) {
+            markPullRequestReadyForReview(input: { pullRequestId: $pullRequestId }) {
+              pullRequest {
+                id
+              }
+            }
+          }`,
+          { pullRequestId: prResult.repository.pullRequest.id }
+        );
+      }
+    } catch {
+      // If marking ready fails, try to merge anyway
+    }
+
     // Merge the PR
     await githubApi<unknown>(
       env,
